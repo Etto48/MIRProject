@@ -10,7 +10,11 @@ authors = [
 ]
 license = { file = "LICENSE" }
 dependencies = [
-    
+    "pandas",
+    "tqdm",
+    "unidecode",
+    "keras",
+    "GitPython",
 ]
 
 [tool.setuptools]
