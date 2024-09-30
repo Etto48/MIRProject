@@ -56,7 +56,7 @@ def get_dataset(verbose=False) -> pd.DataFrame:
             return unidecode.unidecode(song)
         
         def fix_lyrics(lyrics: str):
-            return unidecode.unidecode(lyrics.replace("\n", " "))
+            return unidecode.unidecode(lyrics).replace("\n", " ")
             
         filtered_df.loc[:, 'artist'] = filtered_df['artist'].map(fix_name)
         filtered_df.loc[:, 'song'] = filtered_df['song'].map(fix_song)
