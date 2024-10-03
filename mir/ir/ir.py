@@ -8,6 +8,8 @@ from more_itertools import peekable
 from mir.ir.document import Document
 from mir.ir.document_contents import DocumentContents
 from mir.ir.posting import Posting
+from mir.ir.priority_queue.heap_pq import HeapPQ
+from mir.ir.priority_queue.priority_queue import PriorityQueue
 from mir.ir.term import Term
 
 
@@ -96,7 +98,7 @@ class Ir:
         posting_generators = [
             peekable(self.get_postings(term_id)) for term_id in term_ids]
 
-        priority_queue = []
+        priority_queue: PriorityQueue = HeapPQ()
 
         while True:
             # find the lowest doc_id among all the posting lists
@@ -116,12 +118,13 @@ class Ir:
             score = self.score(self.get_document(
                 lowest_doc_id), postings, terms)
             # we add the score and doc_id to the priority queue
-            heapq.heappush(priority_queue, SortableDocument(
-                lowest_doc_id, -score))
+            priority_queue.push(SortableDocument(lowest_doc_id, -score))
+
+        priority_queue.finalise()
 
         # yield the documents in decreasing order of score
         while len(priority_queue) != 0:
-            sd: SortableDocument = heapq.heappop(priority_queue)
+            sd: SortableDocument = priority_queue.pop()
             doc_id = sd.doc_id
             neg_score = sd.score
             contents = self.get_document(doc_id).contents
