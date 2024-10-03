@@ -8,7 +8,7 @@ from more_itertools import peekable
 from mir.ir.document import Document
 from mir.ir.document_contents import DocumentContents
 from mir.ir.posting import Posting
-from mir.ir.priority_queue.heap_pq import HeapPQ
+from mir.ir.priority_queue.impls import HeapPQ
 from mir.ir.priority_queue.priority_queue import PriorityQueue
 from mir.ir.term import Term
 

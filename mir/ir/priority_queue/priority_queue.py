@@ -24,8 +24,10 @@ class PriorityQueue:
 if __name__ == "__main__":
     import random
     import time
-    from mir.ir.priority_queue.vector_pq import VectorPQ
-    from mir.ir.priority_queue.heap_pq import HeapPQ
+    
+    from mir.ir.priority_queue.impls import HeapPQ
+    from mir.ir.priority_queue.impls import VectorPQ
+    
     impls = [VectorPQ, HeapPQ]
     impl_times = {}
     for impl in impls:
