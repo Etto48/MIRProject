@@ -15,6 +15,7 @@ dependencies = [
     "unidecode",
     "kaggle",
     "GitPython",
+    "more_itertools"
 ]
 
 [tool.setuptools]
