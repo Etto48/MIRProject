@@ -5,13 +5,14 @@ from collections.abc import Callable
 
 def profile(func: Callable) -> Callable:
     """
-    Decorator that calculates the time taken to execute a function and prints it.
+    Decorator to profile a function.
+    The functions will return a tuple with the result and the time it took to execute.
     """
     
     def wrapper(*args, **kwargs):
         start = time.time()
         result = func(*args, **kwargs)
-        print(f"{func.__name__} took {time.time() - start:.2f}s")
-        return result
+        end = time.time()
+        return result, end - start
 
     return wrapper

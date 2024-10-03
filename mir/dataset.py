@@ -1,9 +1,12 @@
 from collections import defaultdict
+from collections.abc import Generator
 from mir import DATA_DIR, COLAB
 import pandas as pd
 import os
 import json
 import unidecode
+
+from mir.ir.document_contents import DocumentContents
 
 def get_dataset(verbose=False) -> pd.DataFrame:
     """
@@ -72,6 +75,9 @@ def get_dataset(verbose=False) -> pd.DataFrame:
     if verbose:
         print("Dataset loaded.")
     return filtered_df
+    
+def dataset_to_contents(df: pd.DataFrame) -> list[DocumentContents]:
+    return [DocumentContents(row['song'], row['lyrics'], artist=row['artist']) for _, row in df.iterrows()]
     
 if __name__ == "__main__":
     df = get_dataset(verbose=True)

@@ -1,5 +1,4 @@
 from collections.abc import Generator, Iterable
-import heapq
 
 import pandas as pd
 from tqdm import tqdm
@@ -104,11 +103,23 @@ class Ir:
             # find the lowest doc_id among all the posting lists
             # doing this avoids having to iterate over all the doc_ids
             # we only take into account the doc_ids that are present in the posting lists
-            lowest_doc_id = min((doc_id for posting in posting_generators if (
-                doc_id := posting.peek().doc_id) is not None), default=None)
+            lowest_doc_id = None
+            empty_posting_lists = []
+            for i, posting in enumerate(posting_generators):
+                try:
+                    doc_id = posting.peek().doc_id
+                    if lowest_doc_id is None or doc_id < lowest_doc_id:
+                        lowest_doc_id = doc_id
+                except StopIteration:
+                    empty_posting_lists.append(i)
             # all the posting lists are empty
             if lowest_doc_id is None:
                 break
+
+            # remove the empty posting lists
+            for i in reversed(empty_posting_lists):
+                posting_generators.pop(i)
+
             postings = []
             # get all the postings with the current doc_id, and advance their iterators
             for posting in posting_generators:
@@ -147,8 +158,46 @@ class Ir:
             columns=["query_id", "Q0", "document_no", "rank", "score", "run_id"])
         for query_id, query in tqdm(queries.items(), desc="Running queries", disable=not verbose):
             for rank, doc in enumerate(self.search(query), start=1):
-                run[len(run)] = [query_id, "Q0",
-                                 doc.title, rank, doc.score, "MIR"]
+                run.loc[len(run)] = [
+                    query_id, "Q0",
+                    doc.title, rank, doc.score, self.__class__.__name__]
                 if rank == top_k:
                     break
+        run.reset_index(drop=True, inplace=True)
         return run
+
+
+if __name__ == "__main__":
+    from mir.dataset import dataset_to_contents
+    from mir.dataset import get_dataset
+    from mir.utils.decorators import profile
+    from mir.ir.impls.naive_ir import NaiveIr
+
+    impls = [NaiveIr]
+    ds = get_dataset(verbose=True)
+
+    for impl in impls:
+        ir = impl()
+
+        @profile
+        def index():
+            ir.bulk_index_documents(dataset_to_contents(ds), verbose=True)
+
+        (_, index_time) = index()
+
+        @profile
+        def run():
+            return ir.get_run({
+                0: "love",
+                1: "hate",
+                2: "war",
+                3: "peace",
+                4: "death",
+                5: "life",
+            }, top_k=10, verbose=True)
+
+        (run_file, run_rime) = run()
+
+        print(f"{impl.__name__} index time: {\
+              index_time:.3f}s, run time: {run_rime:.3f}s")
+        print(run_file)

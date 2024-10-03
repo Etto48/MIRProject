@@ -9,9 +9,3 @@ class DocumentContents:
         
     def set_score(self, score: float):
         self.score = score
-    
-    def compute_info(self) -> dict:
-        """
-        Here we compute metrics and properties of the document.
-        """
-        return {}
