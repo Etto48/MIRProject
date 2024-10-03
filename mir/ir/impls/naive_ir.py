@@ -31,16 +31,12 @@ class NaiveIr(Ir):
         return self.term_lookup.get(term)
 
     def process_document(self, doc: DocumentContents) -> list[str]:
-        terms = []
-        doc_str = doc.title + " " + doc.body
-        for term in doc_str.split():
-            if term in self.stopwords:
-                continue
-            terms.append(term)
-        return terms
+        doc_str = doc.title.lower() + " " + doc.body.lower()
+        return self.process_query(doc_str)
 
     def process_query(self, query: str) -> list[str]:
-        return self.process_document(DocumentContents("", query))
+        query_tokens = query.lower().split()
+        return [token for token in query_tokens if token not in self.stopwords]
 
     def score(self, document: Document, postings: list[Posting], query: list[Term]) -> float:
         return float(len(postings))

@@ -191,12 +191,12 @@ if __name__ == "__main__":
         @profile
         def run():
             return ir.get_run({
-                0: "love",
-                1: "hate",
-                2: "war",
-                3: "peace",
-                4: "death",
-                5: "life",
+                0: "never gonna give you up",
+                1: "i'll never gonna dance again",
+                2: "wake me up",
+                3: "i was made for loving you",
+                4: "take on me",
+                5: "i want to break free",
             }, top_k=10, verbose=True)
 
         (run_file, run_rime) = run()
