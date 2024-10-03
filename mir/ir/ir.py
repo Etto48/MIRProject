@@ -10,6 +10,7 @@ from mir.ir.document_contents import DocumentContents
 from mir.ir.posting import Posting
 from mir.ir.term import Term
 
+
 class SortableDocument:
     def __init__(self, doc_id: int, score: float):
         self.doc_id = doc_id
@@ -32,6 +33,7 @@ class SortableDocument:
 
     def __ne__(self, other: "SortableDocument"):
         return self.score != other.score
+
 
 class Ir:
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
@@ -70,13 +72,13 @@ class Ir:
         Process a query and return a list of term_ids.
         """
         raise NotImplementedError()
-    
+
     def score(self, document: Document, postings: list[Posting], query: list[Term]) -> float:
         """
         Score a document based on the postings and the query.
         """
         raise NotImplementedError()
-    
+
     def index_document(self, doc: DocumentContents) -> None:
         """
         Add a document to the index.
@@ -88,7 +90,7 @@ class Ir:
         Search for documents based on a query.
         Uses document-at-a-time scoring.
         """
-        
+
         term_ids = self.process_query(query)
         terms = [self.get_term(term_id) for term_id in term_ids]
         posting_generators = [
@@ -111,10 +113,12 @@ class Ir:
                 if posting.peek().doc_id == lowest_doc_id:
                     postings.append(next(posting))
             # now that we have all the info about the current document, we can score it
-            score = self.score(self.get_document(lowest_doc_id), postings, terms)
+            score = self.score(self.get_document(
+                lowest_doc_id), postings, terms)
             # we add the score and doc_id to the priority queue
-            heapq.heappush(priority_queue, SortableDocument(lowest_doc_id, -score))
-            
+            heapq.heappush(priority_queue, SortableDocument(
+                lowest_doc_id, -score))
+
         # yield the documents in decreasing order of score
         while len(priority_queue) != 0:
             sd: SortableDocument = heapq.heappop(priority_queue)
