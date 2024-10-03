@@ -1,4 +1,5 @@
 from collections.abc import Generator, Iterable
+from typing import Optional
 
 import pandas as pd
 from tqdm import tqdm
@@ -56,21 +57,22 @@ class Ir:
         """
         raise NotImplementedError()
 
-    def get_term_id(self, term: str) -> int:
+    def get_term_id(self, term: str) -> Optional[int]:
         """
         Get term_id from a term in string format.
+        Returns None if the term is not in the index.
         """
         raise NotImplementedError()
 
-    def process_document(self, doc: DocumentContents) -> list[int]:
+    def process_document(self, doc: DocumentContents) -> list[str]:
         """
-        Process a document and return a list of term_ids.
+        Process a document and return a list of term strings.
         """
         raise NotImplementedError()
 
-    def process_query(self, query: str) -> list[int]:
+    def process_query(self, query: str) -> list[str]:
         """
-        Process a query and return a list of term_ids.
+        Process a query and return a list of term strings.
         """
         raise NotImplementedError()
 
@@ -92,7 +94,8 @@ class Ir:
         Uses document-at-a-time scoring.
         """
 
-        term_ids = self.process_query(query)
+        terms = self.process_query(query)
+        term_ids = [term_id for term in terms if (term_id:=self.get_term_id(term)) is not None]
         terms = [self.get_term(term_id) for term_id in term_ids]
         posting_generators = [
             peekable(self.get_postings(term_id)) for term_id in term_ids]
