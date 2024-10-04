@@ -172,8 +172,8 @@ class Ir:
 
 
 if __name__ == "__main__":
-    from mir.dataset import dataset_to_contents
-    from mir.dataset import get_dataset
+    from mir.utils.dataset import dataset_to_contents
+    from mir.utils.dataset import get_dataset
     from mir.utils.decorators import profile
     from mir.ir.impls.naive_ir import NaiveIr
 
