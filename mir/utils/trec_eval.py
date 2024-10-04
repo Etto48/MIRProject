@@ -43,11 +43,15 @@ def get_trec_eval(verbose: bool = False, force: bool = False) -> str:
         batch_path = f"{DATA_DIR}/trec_eval/build.bat"
         cmd = f"\"{VS_DEV_CMD}\" & \"{batch_path}\""
         subprocess.run(
-            cmd, cwd=f"{DATA_DIR}/trec_eval"
+            cmd, cwd=f"{DATA_DIR}/trec_eval", 
+            stdout=None if verbose else subprocess.DEVNULL,
+            stderr=None if verbose else subprocess.DEVNULL
         ).check_returncode()
     else:
         subprocess.run(
-            "make", cwd=f"{DATA_DIR}/trec_eval"
+            "make", cwd=f"{DATA_DIR}/trec_eval",
+            stdout=None if verbose else subprocess.DEVNULL,
+            stderr=None if verbose else subprocess.DEVNULL
         ).check_returncode()
     if not os.path.exists(executable_path):
         raise FileNotFoundError("trec_eval executable not found.")
