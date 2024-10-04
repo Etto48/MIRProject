@@ -3,10 +3,10 @@ name = "mir"
 version = "0.1.0"
 description = "MIR Project"
 authors = [
-    {name = "Ettore Ricci"},
-    {name = "Paolo Palumbo"},
-    {name = "Zahra Omrani"},
-    {name = "Erni Deliallisi"},
+    { name = "Ettore Ricci" },
+    { name = "Paolo Palumbo" },
+    { name = "Zahra Omrani" },
+    { name = "Erni Deliallisi" },
 ]
 license = { file = "LICENSE" }
 dependencies = [
@@ -15,8 +15,9 @@ dependencies = [
     "unidecode",
     "kaggle",
     "GitPython",
-    "more_itertools"
+    "nltk",
+    "more_itertools",
 ]
 
 [tool.setuptools]
-package-dir = {"mir" = "mir"}
+package-dir = { "mir" = "mir" }

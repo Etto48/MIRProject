@@ -95,7 +95,8 @@ class Ir:
         """
 
         terms = self.process_query(query)
-        term_ids = [term_id for term in terms if (term_id:=self.get_term_id(term)) is not None]
+        term_ids = [term_id for term in terms if (
+            term_id := self.get_term_id(term)) is not None]
         terms = [self.get_term(term_id) for term_id in term_ids]
         posting_generators = [
             peekable(self.get_postings(term_id)) for term_id in term_ids]
@@ -197,10 +198,10 @@ if __name__ == "__main__":
                 3: "i was made for loving you",
                 4: "take on me",
                 5: "i want to break free",
-            }, top_k=10, verbose=True)
+            }, top_k=1000, verbose=True)
 
         (run_file, run_rime) = run()
 
-        print(f"{impl.__name__} index time: {\
-              index_time:.3f}s, run time: {run_rime:.3f}s")
-        print(run_file)
+        print(
+            f"{impl.__name__} index time: "
+            f"{index_time:.3f}s, run time: {run_rime:.3f}s")
