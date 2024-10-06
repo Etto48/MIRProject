@@ -1,29 +1,29 @@
 # Todo
 
-- [ ] (A) Implement the IR system
-  - [ ] (A) Class data to file
-    - [ ] (A) Compression system
-      - [ ] (B) Test for correctness
-      - [ ] (C) Test for space efficiency
-      - [ ] (D) Test for time efficiency
-    - [ ] (A) Posting list
-      - [ ] (A) Document id
-      - [ ] (B) Additional properties
-    - [ ] (B) Lexicon
-    - [ ] (B) Document index
-    - [ ] (C) Caching system
-  - [ ] (B) IR Interface implementation
-    - [ ] (C) get_postings
-    - [ ] (C) get_document
-    - [ ] (C) get_term
-    - [ ] (C) get_term_id
-    - [ ] (C) process_document
-    - [ ] (C) process_query
-    - [ ] (B) score
-      - [ ] (D) Some test needed
-    - [ ] (C) index_document
-- [ ] (D) At least manual testing of the whole system
-- [ ] (B) Colab notebook
-  - [ ] (B) Implement a demo of the system
-  - [ ] (C) Document the notebook
-  - [ ] (C) Test the notebook on Colab
+- (A) Implement the IR system
+  - (A) Class data to file
+    - (A) Compression system
+      - (B) Test for correctness
+      - (C) Test for space efficiency
+      - (D) Test for time efficiency
+    - (A) Posting list
+      - (A) Document id
+      - (B) Additional properties
+    - (B) Lexicon
+    - (B) Document index
+    - (C) Caching system
+  - (B) IR Interface implementation
+    - (C) get_postings
+    - (C) get_document
+    - (C) get_term
+    - (C) get_term_id
+    - (C) process_document
+    - (C) process_query
+    - (B) score
+      - (D) Some test needed
+    - (C) index_document
+- (D) At least manual testing of the whole system
+- (B) Colab notebook
+  - (B) Implement a demo of the system
+  - (C) Document the notebook
+  - (C) Test the notebook on Colab
