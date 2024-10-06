@@ -1,4 +1,5 @@
-from collections.abc import Generator, Iterable
+from abc import ABC, abstractmethod
+from collections.abc import Generator
 from typing import Optional
 
 import pandas as pd
@@ -11,6 +12,7 @@ from mir.ir.posting import Posting
 from mir.ir.priority_queue.impls import HeapPQ
 from mir.ir.priority_queue.priority_queue import PriorityQueue
 from mir.ir.term import Term
+from mir.utils.types import SizedGenerator
 
 
 class SortableDocument:
@@ -37,56 +39,56 @@ class SortableDocument:
         return self.score != other.score
 
 
-class Ir:
+class Ir(ABC):
+    @abstractmethod
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
         """
         Get a generator of postings for a term_id.
         MUST be sorted by doc_id.
         """
-        raise NotImplementedError()
 
+    @abstractmethod
     def get_document(self, doc_id: int) -> Document:
         """
         Get document info from a doc_id.
         """
-        raise NotImplementedError()
 
+    @abstractmethod
     def get_term(self, term_id: int) -> Term:
         """
         Get term info from a term_id.
         """
-        raise NotImplementedError()
 
+    @abstractmethod
     def get_term_id(self, term: str) -> Optional[int]:
         """
         Get term_id from a term in string format.
         Returns None if the term is not in the index.
         """
-        raise NotImplementedError()
 
+    @abstractmethod
     def process_document(self, doc: DocumentContents) -> list[str]:
         """
         Process a document and return a list of term strings.
         """
-        raise NotImplementedError()
 
+    @abstractmethod
     def process_query(self, query: str) -> list[str]:
         """
         Process a query and return a list of term strings.
         """
-        raise NotImplementedError()
 
+    @abstractmethod
     def score(self, document: Document, postings: list[Posting], query: list[Term]) -> float:
         """
         Score a document based on the postings and the query.
         """
-        raise NotImplementedError()
 
+    @abstractmethod
     def index_document(self, doc: DocumentContents) -> None:
         """
         Add a document to the index.
         """
-        raise NotImplementedError()
 
     def search(self, query: str) -> Generator[DocumentContents, None, None]:
         """
@@ -146,21 +148,23 @@ class Ir:
             contents.set_score(-neg_score)
             yield contents
 
-    def bulk_index_documents(self, docs: Iterable[DocumentContents], verbose: bool = False) -> None:
+    def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], verbose: bool = False) -> None:
         """
         Add multiple documents to the index, this calls index_document for each document.
         """
-        for doc in tqdm(docs, desc="Indexing documents", disable=not verbose):
+        for doc in tqdm(docs, desc="Indexing documents", disable=not verbose, total=len(docs)):
             self.index_document(doc)
 
-    def get_run(self, queries: dict[int, str], top_k: int, verbose: bool = False) -> pd.DataFrame:
+    def get_run(self, queries: pd.DataFrame, top_k: int, verbose: bool = False) -> pd.DataFrame:
         """
         Generate a run file for the given queries in the form of a pandas DataFrame.
         You can encode it to a file using a tab separator and the to_csv method.
         """
         run = pd.DataFrame(
             columns=["query_id", "Q0", "document_no", "rank", "score", "run_id"])
-        for query_id, query in tqdm(queries.items(), desc="Running queries", disable=not verbose):
+        for query_row in tqdm(queries.iterrows(), desc="Running queries", disable=not verbose):
+            query_id = query_row["query_id"]
+            query = query_row["text"]
             for rank, doc in enumerate(self.search(query), start=1):
                 run.loc[len(run)] = [
                     query_id, "Q0",
@@ -185,20 +189,25 @@ if __name__ == "__main__":
 
         @profile
         def index():
-            ir.bulk_index_documents(dataset_to_contents(ds), verbose=True)
+            docs = dataset_to_contents(ds)
+            ir.bulk_index_documents(docs, verbose=True)
 
         (_, index_time) = index()
 
         @profile
         def run():
-            return ir.get_run({
-                0: "never gonna give you up",
-                1: "i'll never gonna dance again",
-                2: "wake me up",
-                3: "i was made for loving you",
-                4: "take on me",
-                5: "i want to break free",
-            }, top_k=1000, verbose=True)
+            queries = pd.DataFrame({
+                "query_id": [0, 1, 2, 3, 4, 5],
+                "text": [
+                    "never gonna give you up",
+                    "i'll never gonna dance again",
+                    "wake me up",
+                    "i was made for loving you",
+                    "take on me",
+                    "i want to break free",
+                ]
+            })
+            return ir.get_run(queries, top_k=1000, verbose=True)
 
         (run_file, run_rime) = run()
 

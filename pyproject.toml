@@ -17,6 +17,7 @@ dependencies = [
     "GitPython",
     "nltk",
     "more_itertools",
+    "tarfile",
 ]
 
 [tool.setuptools]

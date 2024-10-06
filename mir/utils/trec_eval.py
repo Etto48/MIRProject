@@ -3,6 +3,9 @@ import os
 import subprocess
 
 from mir import DATA_DIR
+from mir.ir.ir import Ir
+from mir.utils.dataset import get_test_dataset, test_dataset_to_contents
+
 
 def get_trec_eval(verbose: bool = False, force: bool = False) -> str:
     """
@@ -14,11 +17,11 @@ def get_trec_eval(verbose: bool = False, force: bool = False) -> str:
         executable_path = f"{DATA_DIR}/trec_eval/trec_eval.exe"
     else:
         executable_path = f"{DATA_DIR}/trec_eval/trec_eval"
-        
+
     # skip build if executable already exists
     if os.path.exists(executable_path) and not force:
         return executable_path
-    
+
     if os.path.exists(f"{DATA_DIR}/trec_eval"):
         if verbose:
             print("Updating trec_eval")
@@ -43,7 +46,7 @@ def get_trec_eval(verbose: bool = False, force: bool = False) -> str:
         batch_path = f"{DATA_DIR}/trec_eval/build.bat"
         cmd = f"\"{VS_DEV_CMD}\" & \"{batch_path}\""
         subprocess.run(
-            cmd, cwd=f"{DATA_DIR}/trec_eval", 
+            cmd, cwd=f"{DATA_DIR}/trec_eval",
             stdout=None if verbose else subprocess.DEVNULL,
             stderr=None if verbose else subprocess.DEVNULL
         ).check_returncode()
@@ -59,6 +62,30 @@ def get_trec_eval(verbose: bool = False, force: bool = False) -> str:
         print("trec_eval build completed.")
     return executable_path
 
+
+def eval_ir(ir: Ir, verbose: bool = False):
+    """
+    Evaluates the given IR system using trec_eval.
+    The IR system must not be indexed, the documents
+    will be indexed and evaluated in this function.
+    Uses TREC DL 2020 
+    """
+    (test_corpus, test_corpus_path), \
+        (test_queries, test_queries_path), \
+        (test_qrels, test_qrels_path) = get_test_dataset(verbose=verbose)
+    docs = test_dataset_to_contents(test_corpus, verbose)
+    ir.bulk_index_documents(docs, verbose)
+    ir_results = ir.get_run(test_queries, 1000, verbose)
+    ir_results_path = f"{DATA_DIR}/ir_results.txt"
+    ir_results.to_csv(ir_results_path, sep=" ", header=False, index=False)
+    trec_eval = get_trec_eval(verbose)
+    output = subprocess.run(
+        [trec_eval, "-q", test_qrels_path, ir_results_path],
+        stdout=None if verbose else subprocess.DEVNULL,
+        stderr=None if verbose else subprocess.DEVNULL
+    )
+
+
 if __name__ == "__main__":
     executable = get_trec_eval(verbose=True)
-    subprocess.run([executable, "-h"])
+    subprocess.run([executable, "-h"], check=True)
