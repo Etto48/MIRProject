@@ -23,3 +23,7 @@
       - [ ] (D) Some test needed
     - [ ] (C) index_document
 - [ ] (D) At least manual testing of the whole system
+- [ ] (B) Colab notebook
+  - [ ] (B) Implement a demo of the system
+  - [ ] (C) Document the notebook
+  - [ ] (C) Test the notebook on Colab
