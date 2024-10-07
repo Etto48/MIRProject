@@ -24,7 +24,7 @@ class PriorityQueue(Iterable[tuple[float, int]], Sized):
         """
         Call this after all items have been pushed to the priority queue.
         """
-        self.heap.sort(key=lambda x: -x[0])
+        self.heap.sort(reverse=True)
         self.finalised = True
     
     def __iter__(self) -> Iterable[tuple[float, int]]:
