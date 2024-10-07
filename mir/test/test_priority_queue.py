@@ -16,11 +16,6 @@ class TestPriorityQueue(unittest.TestCase):
         for (true_doc_id, true_score), (score, doc_id) in zip(items[:5], pq):
             self.assertEqual((true_doc_id, true_score), (doc_id, score))
         self.assertEqual(len(pq), 5)
-        
-
-class TestIR(unittest.TestCase):
-    # test function names must start with "test"
-    pass
 
 if __name__ == "__main__":
     unittest.main()
