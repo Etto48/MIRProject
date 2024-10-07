@@ -7,7 +7,7 @@ import pandas as pd
 import os
 import json
 import unidecode
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from mir.ir.document_contents import DocumentContents
 from mir.utils.types import SizedGenerator

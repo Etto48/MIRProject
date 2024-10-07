@@ -3,40 +3,15 @@ from collections.abc import Generator
 from typing import Optional
 
 import pandas as pd
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from more_itertools import peekable
 
 from mir.ir.document import Document
 from mir.ir.document_contents import DocumentContents
 from mir.ir.posting import Posting
-from mir.ir.priority_queue.impls import HeapPQ
-from mir.ir.priority_queue.priority_queue import PriorityQueue
+from mir.ir.priority_queue import PriorityQueue
 from mir.ir.term import Term
 from mir.utils.types import SizedGenerator
-
-
-class SortableDocument:
-    def __init__(self, doc_id: int, score: float):
-        self.doc_id = doc_id
-        self.score = score
-
-    def __lt__(self, other: "SortableDocument"):
-        return self.score < other.score
-
-    def __eq__(self, other: "SortableDocument"):
-        return self.score == other.score
-
-    def __gt__(self, other: "SortableDocument"):
-        return self.score > other.score
-
-    def __le__(self, other: "SortableDocument"):
-        return self.score <= other.score
-
-    def __ge__(self, other: "SortableDocument"):
-        return self.score >= other.score
-
-    def __ne__(self, other: "SortableDocument"):
-        return self.score != other.score
 
 
 class Ir(ABC):
@@ -90,7 +65,7 @@ class Ir(ABC):
         Add a document to the index.
         """
 
-    def search(self, query: str) -> Generator[DocumentContents, None, None]:
+    def search(self, query: str, top_k: int = 1000) -> Generator[DocumentContents, None, None]:
         """
         Search for documents based on a query.
         Uses document-at-a-time scoring.
@@ -103,7 +78,7 @@ class Ir(ABC):
         posting_generators = [
             peekable(self.get_postings(term_id)) for term_id in term_ids]
 
-        priority_queue: PriorityQueue = HeapPQ()
+        priority_queue = PriorityQueue(top_k)
 
         while True:
             # find the lowest doc_id among all the posting lists
@@ -135,17 +110,14 @@ class Ir(ABC):
             score = self.score(self.get_document(
                 lowest_doc_id), postings, terms)
             # we add the score and doc_id to the priority queue
-            priority_queue.push(SortableDocument(lowest_doc_id, -score))
+            priority_queue.push(lowest_doc_id, score)
 
         priority_queue.finalise()
 
         # yield the documents in decreasing order of score
-        while len(priority_queue) != 0:
-            sd: SortableDocument = priority_queue.pop()
-            doc_id = sd.doc_id
-            neg_score = sd.score
+        for score, doc_id in priority_queue:
             contents = self.get_document(doc_id).contents
-            contents.set_score(-neg_score)
+            contents.set_score(score)
             yield contents
 
     def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], verbose: bool = False) -> None:
@@ -162,10 +134,10 @@ class Ir(ABC):
         """
         run = pd.DataFrame(
             columns=["query_id", "Q0", "document_no", "rank", "score", "run_id"])
-        for query_row in tqdm(queries.iterrows(), desc="Running queries", disable=not verbose):
+        for _, query_row in tqdm(queries.iterrows(), desc="Running queries", disable=not verbose):
             query_id = query_row["query_id"]
             query = query_row["text"]
-            for rank, doc in enumerate(self.search(query), start=1):
+            for rank, doc in enumerate(self.search(query, top_k), start=1):
                 run.loc[len(run)] = [
                     query_id, "Q0",
                     doc.title, rank, doc.score, self.__class__.__name__]
