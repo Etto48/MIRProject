@@ -20,18 +20,36 @@ class Ir(ABC):
         """
         Get a generator of postings for a term_id.
         MUST be sorted by doc_id.
+
+        # Parameters
+        - term_id (int): The term_id.
+
+        # Yields
+        - Posting: A posting from the posting list related to the term_id.
         """
 
     @abstractmethod
     def get_document(self, doc_id: int) -> Document:
         """
         Get document info from a doc_id.
+
+        # Parameters
+        - doc_id (int): The doc_id.
+
+        # Returns
+        - Document: The document related to the doc_id.
         """
 
     @abstractmethod
     def get_term(self, term_id: int) -> Term:
         """
         Get term info from a term_id.
+
+        # Parameters
+        - term_id (int): The term_id.
+
+        # Returns
+        - Term: The term related to the term_id.
         """
 
     @abstractmethod
@@ -39,36 +57,73 @@ class Ir(ABC):
         """
         Get term_id from a term in string format.
         Returns None if the term is not in the index.
+
+        # Parameters
+        - term (str): The term in string format.
+
+        # Returns
+        - Optional[int]: The term_id related to the term or None if the term is not in the index.
         """
 
     @abstractmethod
     def process_document(self, doc: DocumentContents) -> list[str]:
         """
         Process a document and return a list of term strings.
+
+        # Parameters
+        - doc (DocumentContents): The document to process.
+
+        # Returns
+        - list[str]: A list of term strings.
         """
 
     @abstractmethod
     def process_query(self, query: str) -> list[str]:
         """
         Process a query and return a list of term strings.
+
+        # Parameters
+        - query (str): The query to process.
+
+        # Returns
+        - list[str]: A list of term strings.
         """
 
     @abstractmethod
     def score(self, document: Document, postings: list[Posting], query: list[Term]) -> float:
         """
         Score a document based on the postings and the query.
+
+        # Parameters
+        - document (Document): The document to score.
+        - postings (list[Posting]): The postings related to the document and the query.
+        - query (list[Term]): The query terms.
+
+        # Returns
+        - float: The score of the document.
         """
 
     @abstractmethod
     def index_document(self, doc: DocumentContents) -> None:
         """
         Add a document to the index.
+
+        # Parameters
+        - doc (DocumentContents): The document to add to the index.
         """
 
     def search(self, query: str, top_k: int = 1000) -> Generator[DocumentContents, None, None]:
         """
         Search for documents based on a query.
         Uses document-at-a-time scoring.
+
+        # Parameters
+        - query (str): The query to search for.
+        - top_k (int): The number of documents to return.
+
+        # Yields
+        - DocumentContents: A document that matches the query. In decreasing order of score.
+        It also has a score attribute with the score of the document.
         """
 
         terms = self.process_query(query)
@@ -123,6 +178,10 @@ class Ir(ABC):
     def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], verbose: bool = False) -> None:
         """
         Add multiple documents to the index, this calls index_document for each document.
+
+        # Parameters
+        - docs (SizedGenerator[DocumentContents, None, None]): A generator of documents to add to the index.
+        - verbose (bool): Whether to show a progress bar.
         """
         for doc in tqdm(docs, desc="Indexing documents", disable=not verbose, total=len(docs)):
             self.index_document(doc)
@@ -131,6 +190,16 @@ class Ir(ABC):
         """
         Generate a run file for the given queries in the form of a pandas DataFrame.
         You can encode it to a file using a tab separator and the to_csv method.
+
+        # Parameters
+        - queries (pd.DataFrame): A DataFrame with the queries to run. 
+        It must have the columns "query_id" and "text".
+        - top_k (int): The number of documents to return for each query.
+        - verbose (bool): Whether to show a progress bar.
+
+        # Returns
+        - pd.DataFrame: The run file. It has the columns 
+        "query_id", "Q0", "document_no", "rank", "score", "run_id".
         """
         run = pd.DataFrame(
             columns=["query_id", "Q0", "document_no", "rank", "score", "run_id"])
