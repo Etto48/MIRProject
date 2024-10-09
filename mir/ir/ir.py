@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Generator
-from typing import Optional
+from typing import Optional, Protocol
 
 import pandas as pd
 from tqdm.auto import tqdm
@@ -14,7 +14,7 @@ from mir.ir.term import Term
 from mir.utils.types import SizedGenerator
 
 
-class Ir(ABC):
+class Ir(Protocol):
     @abstractmethod
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
         """
