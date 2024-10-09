@@ -155,12 +155,15 @@ class Ir(ABC):
             # remove the empty posting lists
             for i in reversed(empty_posting_lists):
                 posting_generators.pop(i)
+                term_ids.pop(i)
 
             postings = []
             # get all the postings with the current doc_id, and advance their iterators
-            for posting in posting_generators:
+            for i, posting in enumerate(posting_generators):
                 if posting.peek().doc_id == lowest_doc_id:
-                    postings.append(next(posting))
+                    next_posting = next(posting)
+                    next_posting.set_attribute("term_id", term_ids[i])
+                    postings.append(next_posting)
             # now that we have all the info about the current document, we can score it
             score = self.score(self.get_document(
                 lowest_doc_id), postings, terms)
