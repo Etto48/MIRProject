@@ -250,8 +250,8 @@ if __name__ == "__main__":
     index_path = f"{DATA_DIR}/test/fhmap.index"
     data_path = f"{DATA_DIR}/test/fhmap.data"
     os.makedirs(f"{DATA_DIR}/test", exist_ok=True)
-    block_space = [16, 32, 64, 128, 256]
-    hash_space = [4, 8, 16, 32, 64]
+    block_space = [16, 32, 64, 128, 256, 512, 1024, 2048]
+    hash_space = [4, 8, 16, 32, 64, 128, 256, 512]
     
     def test(block_size, hash_size):
         try:
@@ -285,12 +285,16 @@ if __name__ == "__main__":
             "read_time": read_time,
             "bs_mean": bs_mean,
             "bs_std": bs_std,
+            "index_size": os.path.getsize(index_path),
+            "data_size": os.path.getsize(data_path)
         }
         
     write_times = [[0 for _ in hash_space] for _ in block_space]
     read_times = [[0 for _ in hash_space] for _ in block_space]
     bs_means = [[0 for _ in hash_space] for _ in block_space]
     bs_stds = [[0 for _ in hash_space] for _ in block_space]
+    index_size = [[0 for _ in hash_space] for _ in block_space]
+    data_size = [[0 for _ in hash_space] for _ in block_space]
     total = len(block_space) * len(hash_space)
     
     for (i, block_size), (j, hash_size) in tqdm(product(enumerate(block_space), enumerate(hash_space)), desc="Benchmarking", total=total):
@@ -299,11 +303,13 @@ if __name__ == "__main__":
         read_times[i][j] = test_result["read_time"]
         bs_means[i][j] = test_result["bs_mean"]
         bs_stds[i][j] = test_result["bs_std"]
+        index_size[i][j] = test_result["index_size"]
+        data_size[i][j] = test_result["data_size"]
     os.remove(index_path)
     os.remove(data_path)
     
     plt.figure(figsize=(12, 6))
-    plt.subplot(2, 2, 1)
+    plt.subplot(2, 3, 1)
     plt.title("Write Time")
     plt.imshow(write_times, cmap="viridis")
     plt.colorbar()
@@ -312,7 +318,7 @@ if __name__ == "__main__":
     plt.xlabel("Hash Size")
     plt.ylabel("Block Size")
     
-    plt.subplot(2, 2, 2)
+    plt.subplot(2, 3, 2)
     plt.title("Read Time")
     plt.imshow(read_times, cmap="viridis")
     plt.colorbar()
@@ -321,7 +327,7 @@ if __name__ == "__main__":
     plt.xlabel("Hash Size")
     plt.ylabel("Block Size")
     
-    plt.subplot(2, 2, 3)
+    plt.subplot(2, 3, 3)
     plt.title("Bucket Size Mean")
     plt.imshow(bs_means, cmap="viridis")
     plt.colorbar()
@@ -330,9 +336,27 @@ if __name__ == "__main__":
     plt.xlabel("Hash Size")
     plt.ylabel("Block Size")
     
-    plt.subplot(2, 2, 4)
+    plt.subplot(2, 3, 4)
     plt.title("Bucket Size Standard Deviation")
     plt.imshow(bs_stds, cmap="viridis")
+    plt.colorbar()
+    plt.xticks(range(len(hash_space)), hash_space)
+    plt.yticks(range(len(block_space)), block_space)
+    plt.xlabel("Hash Size")
+    plt.ylabel("Block Size")
+    
+    plt.subplot(2, 3, 5)
+    plt.title("Index Size")
+    plt.imshow(index_size, cmap="viridis")
+    plt.colorbar()
+    plt.xticks(range(len(hash_space)), hash_space)
+    plt.yticks(range(len(block_space)), block_space)
+    plt.xlabel("Hash Size")
+    plt.ylabel("Block Size")
+    
+    plt.subplot(2, 3, 6)
+    plt.title("Data Size")
+    plt.imshow(data_size, cmap="viridis")
     plt.colorbar()
     plt.xticks(range(len(hash_space)), hash_space)
     plt.yticks(range(len(block_space)), block_space)
