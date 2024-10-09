@@ -1,11 +1,11 @@
-from unittest import TestCase
+import unittest
 
 from mir.file_map.file_hmap import FileHMap
 from mir.file_map.hashable_key.impls.str_hk import StrHK
 from mir.test.file_map_test_utils import setup_teardown_files
 
 
-class TestFileHMap(TestCase):
+class TestFileHMap(unittest.TestCase):
     @setup_teardown_files
     def test_file_hmap(self, index_path, data_path):
         fh = FileHMap(index_path, data_path, 16, 4)
@@ -75,3 +75,6 @@ class TestFileHMap(TestCase):
                 self.assertEqual(fh[k], None)
             else:
                 self.assertEqual(fh[k], data[k])
+
+if __name__ == '__main__':
+    unittest.main()
