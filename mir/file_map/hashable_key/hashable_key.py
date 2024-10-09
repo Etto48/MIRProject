@@ -1,8 +1,9 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Hashable
+from typing import Protocol
 
 
-class HashableKey(ABC, Hashable):
+class HashableKey(Protocol, Hashable):
     """
     This abstract class is used to define the interface for a hashable key.
     An hashable key is an object that can be used as a key in a FileHMap.
