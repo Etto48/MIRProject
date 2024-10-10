@@ -19,6 +19,7 @@ class TokenizerIr(Ir):
         self.terms: list[Term] = []
         self.term_lookup: dict[str, int] = {}
         self.stopwords = set(nltk.corpus.stopwords.words("english"))
+        self.stemmer = nltk.SnowballStemmer("english")
     
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
         for doc_id, posting in self.postings[term_id].items():
@@ -33,11 +34,11 @@ class TokenizerIr(Ir):
     def get_term_id(self, term: str) -> Optional[int]:
         return self.term_lookup.get(term)
 
-    def process_document(document: Document, stop_words: set, stemmer: StemmerI = nltk.SnowballStemmer("english")) -> list:
+    def process_document(self, document_content: DocumentContents) -> list:
         
         # 1 - Token creation 
-        title_list = document.contents.title.translate(str.maketrans('','', string.punctuation)).lower().split()
-        body_list = document.contents.body.translate(str.maketrans('','', string.punctuation)).lower().split()
+        title_list = document_content.title.translate(str.maketrans('','', string.punctuation)).lower().split()
+        body_list = document_content.body.translate(str.maketrans('','', string.punctuation)).lower().split()
         
         token_list = []
 
@@ -46,20 +47,21 @@ class TokenizerIr(Ir):
         for idx, tword in enumerate(title_list) :
 
             # 2a - Stemming title words 
-            tword = stemmer.stem(tword)
+            tword = self.stemmer.stem(tword)
 
             # No Stopwords removal for title
-            token_list.append(Token(tword, True, idx))
+            if not tword in self.stopwords : 
+                token_list.append(Token(tword, True, idx))
 
 
         # 3 - Processing Body    
         for idx, bword in enumerate(body_list) :
 
             # 3a - Stemming body words
-            bword = stemmer.stem(bword)
+            bword = self.stemmer.stem(bword)
 
             # 3b - If clause removes Stopwords in Body
-            if not bword in stop_words : 
+            if not bword in self.stopwords : 
                 token_list.append(Token(bword, False, idx))
 
         # Returns list of tokens

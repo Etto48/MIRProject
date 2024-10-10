@@ -8,6 +8,6 @@ present in the title or in the body (lyrics) of the song
 
 @dataclass
 class Token:
-    word: str
+    token: str
     is_in_title: bool
     position: int
