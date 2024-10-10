@@ -1,3 +1,4 @@
+from collections.abc import Generator
 import os
 
 
@@ -63,8 +64,10 @@ class FileMap:
         # Returns
         - bytes: The value. Setting a value to b"" will delete it.
         """
-        
-        offset, length = self._index_get(key)
+        try:
+            offset, length = self._index_get(key)
+        except KeyError:
+            return b""
         ret = b""
         size_read = 0
         with open(self.path, "rb") as f:
@@ -81,6 +84,39 @@ class FileMap:
                     break
                 offset = next_offset
         return ret[:length]
+    
+    def get_item_as_stream(self, key: int) -> Generator[bytes, None, None]:
+        """
+        Get a value from the FileMap as a stream.
+        
+        # Parameters
+        - key (int): The key of the value.
+        # Yields
+        - bytes: A part of the value.
+        """
+        try:
+            offset, length = self._index_get(key)
+        except KeyError:
+            return
+        size_read = 0
+        with open(self.path, "rb") as f:
+            while True:
+                f.seek(offset)
+                block = f.read(self.block_size)
+                if len(block) < self.block_size:
+                    raise ValueError("Corrupted file")
+                starting_offset = size_read
+                size_read += self.block_size - self.next_offset_size
+                block_useful_size = min(length - starting_offset, self.block_size - self.next_offset_size)
+                if block_useful_size <= 0:
+                    break
+                else:
+                    yield block[:block_useful_size]
+                next_offset = int.from_bytes(
+                    block[self.block_size - self.next_offset_size:], "big")
+                if next_offset == 0:
+                    break
+                offset = next_offset
 
     def __setitem__(self, key: int, value: bytes) -> None:
         """
@@ -114,6 +150,7 @@ class FileMap:
                     next_offset = int.from_bytes(
                         old_block[self.block_size - self.next_offset_size:], "big")
                 else:
+                    old_block = None
                     next_offset = 0
                 start_offset = i*(self.block_size - self.next_offset_size)
                 end_offset = (i+1)*(self.block_size - self.next_offset_size)
@@ -136,13 +173,94 @@ class FileMap:
                         new_block += next_offset.to_bytes(
                             self.next_offset_size, "big")
                 f.seek(offset)
-                f.write(new_block)
+                if old_block is None or old_block != new_block:
+                    f.write(new_block)
                 if is_last_block:
                     break
                 offset = next_offset
                 i += 1
 
         self._index_set(key, (starting_offset, value_length))
+
+    def append(self, key: int, value: bytes) -> None:
+        """
+        Append a value to another value in the FileMap.
+        
+        # Parameters
+        - key (int): The key of the value.
+        - value (bytes): The additional bytes to append.
+        """
+        
+        file_size = os.path.getsize(self.path)
+        value_length = len(value)
+        try:
+            offset, length = self._index_get(key)
+            overwriting = True
+            old_length = length
+            total_length = length + value_length
+        except KeyError:
+            offset = file_size
+            overwriting = False
+            old_length = 0
+            total_length = value_length
+
+        starting_offset = offset
+        i = 0
+
+        with open(self.path, "r+b") as f:
+            while True:
+                start_offset = i*(self.block_size - self.next_offset_size)
+                end_offset = (i+1)*(self.block_size - self.next_offset_size)
+                end_offset = min(end_offset, len(value) + old_length)
+                
+                f.seek(offset)
+                if overwriting:
+                    if end_offset < old_length:
+                        f.seek(offset + self.block_size - self.next_offset_size)
+                        next_offset = int.from_bytes(f.read(self.next_offset_size), "big")
+                        offset = next_offset
+                        i += 1
+                        continue
+                    else:
+                        old_block = f.read(self.block_size)
+                        next_offset = int.from_bytes(
+                            old_block[self.block_size - self.next_offset_size:], "big")
+                else:
+                    old_block = None
+                    next_offset = 0
+                
+                if start_offset < old_length:
+                    # we have a mix of old and new data
+                    new_block = old_block[:old_length - start_offset] + \
+                        value[:end_offset - old_length]
+                else:
+                    # we only have new data
+                    new_block = value[start_offset - old_length:end_offset - old_length]
+                new_block += b'\x00' * \
+                    (self.block_size - len(new_block) - self.next_offset_size)
+                is_last_block = len(value) + old_length == end_offset
+                if is_last_block:
+                    new_block += b'\x00' * self.next_offset_size
+                else:
+                    if next_offset == 0:
+                        overwriting = False
+                        next_offset = file_size
+                        file_size += self.block_size
+                        next_offset += self.block_size
+                        new_block += next_offset.to_bytes(
+                            self.next_offset_size, "big")
+                    else:
+                        new_block += next_offset.to_bytes(
+                            self.next_offset_size, "big")
+                f.seek(offset)
+                if old_block is None or old_block != new_block:
+                    f.write(new_block)
+                if is_last_block:
+                    break
+                offset = next_offset
+                i += 1
+
+        self._index_set(key, (starting_offset, total_length))
 
     def next_key(self) -> int:
         """

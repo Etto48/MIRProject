@@ -4,23 +4,7 @@ import os
 
 from mir import DATA_DIR
 from mir.file_map.file_map import FileMap
-
-def setup_teardown_files(func: Callable) -> Callable:
-    def wrapper(self):
-        index_path = f"{DATA_DIR}/test/file_map_{func.__name__}.index"
-        data_path = f"{DATA_DIR}/test/file_map_{func.__name__}.data"
-        try:
-            os.remove(index_path)
-        except FileNotFoundError:
-            pass
-        try:
-            os.remove(data_path)
-        except FileNotFoundError:
-            pass
-        func(self, index_path, data_path)
-        os.remove(index_path)
-        os.remove(data_path)
-    return wrapper
+from mir.test.file_map_test_utils import setup_teardown_files
 
 class TestFileMap(unittest.TestCase):
     @setup_teardown_files
@@ -137,6 +121,46 @@ class TestFileMap(unittest.TestCase):
         self.assertEqual(fm.next_key(), len(data) + 6)
         self.assertEqual(fm.next_available_key(), len(data))
         
+    @setup_teardown_files
+    def test_file_map_stream(self, index_path, data_path):
+        fm = FileMap(index_path, data_path, 16)
+        data = [
+            b"pls",
+            b"work",
+            b"hello world",
+            b"this is a test",
+            b"of the file map class",
+            b"it should work",
+            b"caffettin, caffettin",
+            b"lo bevo, e so contento",
+        ]
+        for i, d in enumerate(data):
+            fm[i] = d
+        for i, d in enumerate(data):
+            self.assertEqual(b"".join(fm.get_item_as_stream(i)), d)
+    
+    @setup_teardown_files
+    def test_file_map_append(self, index_path, data_path):
+        fm = FileMap(index_path, data_path, 16)
+        data = [
+            b"pls",
+            b"work",
+            b"hello world",
+            b"this is a test",
+            b"of the file map class",
+            b"it should work",
+            b"caffettin, caffettin",
+            b"lo bevo, e so contento",
+        ]
+        for i, d in enumerate(data):
+            fm[i] = d
+        for i, d in enumerate(data):
+            fm.append(i, d)
+        for i, d in enumerate(data):
+            fm.append(i, b"TEST")
+        for i, d in enumerate(data):
+            total = b"".join([d]*2) + b"TEST"
+            self.assertEqual(fm[i], total)
             
 if __name__ == "__main__":
     unittest.main()
