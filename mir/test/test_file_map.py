@@ -162,5 +162,42 @@ class TestFileMap(unittest.TestCase):
             total = b"".join([d]*2) + b"TEST"
             self.assertEqual(fm[i], total)
             
+    @setup_teardown_files
+    def test_file_map_concurrent(self, index_path, data_path):
+        fm = FileMap(index_path, data_path, 16)
+        data = [
+            b"pls",
+            b"work",
+            b"hello world",
+            b"this is a test",
+            b"of the file map class",
+            b"it should work",
+            b"caffettin, caffettin",
+            b"lo bevo, e so contento",
+        ]
+        for i, d in enumerate(data):
+            fm[i] = d
+        
+        streams = [
+            fm.get_item_as_stream(i) for i in range(len(data))
+        ]
+        
+        output = [b"" for _ in range(len(data))]
+        completed = [False for _ in range(len(data))]
+        while not all(completed):
+            for i, s in enumerate(streams):
+                try:
+                    output[i] += next(s)
+                except StopIteration:
+                    completed[i] = True
+                # the write is buffered to be written once the
+                # stream is closed
+                fm[i] = b"TEST"
+        for i, d in enumerate(data):
+            self.assertEqual(output[i], d)
+        for i, d in enumerate(data):
+            self.assertEqual(fm[i], b"TEST")
+        
+            
 if __name__ == "__main__":
     unittest.main()
