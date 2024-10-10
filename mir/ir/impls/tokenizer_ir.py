@@ -33,7 +33,6 @@ class TokenizerIr(Ir):
     def get_term_id(self, term: str) -> Optional[int]:
         return self.term_lookup.get(term)
 
-    """IMPLEMENTED"""
     def process_document(document: Document, stop_words: set, stemmer: StemmerI = nltk.SnowballStemmer("english")) -> list:
         
         # 1 - Token creation 
