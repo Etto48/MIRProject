@@ -12,7 +12,7 @@ from mir.ir.term import Term
 from mir.ir.token import Token
 
 
-class NaiveIr(Ir):
+class TokenizerIr(Ir):
     def __init__(self):
         self.postings: list[OrderedDict[Posting]] = []
         self.documents: list[Document] = []
