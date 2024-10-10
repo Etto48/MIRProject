@@ -7,14 +7,16 @@ from mir.file_map.serde import Serde
 
 T = TypeVar('T', bound=Serde)
 
+
 class CachedHMap(Generic[T]):
     """
     Cached wrapper around a FileHMap.
     """
+
     def __init__(self, file_hmap: FileHMap, cache_size: int, serde: type[T]):
         """
         Initialize a CachedHMap.
-        
+
         # Parameters
         - file_hmap (FileHMap): The FileHMap to wrap.
         - cache_size (int): The maximum number of entries to cache.
@@ -24,7 +26,7 @@ class CachedHMap(Generic[T]):
         self.cache: OrderedDict[HashableKey, CacheEntry[T]] = OrderedDict()
         self.cache_size = cache_size
         self.serde = serde
-        
+
     def _pop_cache(self):
         """
         Pop the least recently used value from the cache and write it to the inner FileHMap.
@@ -32,14 +34,14 @@ class CachedHMap(Generic[T]):
         old_key, old_value = self.cache.popitem(last=False)
         if old_value.dirty:
             self.inner[old_key] = old_value.value.serialize()
-    
+
     def __getitem__(self, key: HashableKey) -> Optional[T]:
         """
         Retrieve a value from the cache or the inner FileHMap.
-        
+
         # Parameters
         - key (HashableKey): The key to retrieve.
-        
+
         # Returns
         - Optional[T]: The value associated with the key, or None if the key is not present
         """
@@ -56,11 +58,11 @@ class CachedHMap(Generic[T]):
                     if len(self.cache) > self.cache_size:
                         self._pop_cache()
                     return value
-    
+
     def __setitem__(self, key: HashableKey, value: Optional[T]):
         """
         Set a value in the cache or the inner FileHMap.
-        
+
         # Parameters
         - key (HashableKey): The key to set.
         - value (Optional[bytes]): The value to set, or None to delete the key.
@@ -77,7 +79,7 @@ class CachedHMap(Generic[T]):
                     self._pop_cache()
         else:
             del self[key]
-    
+
     def write(self):
         """
         Write any dirty values in the cache to the inner FileHMap.
@@ -85,17 +87,17 @@ class CachedHMap(Generic[T]):
         for key, value in self.cache.items():
             if value.dirty:
                 self.inner[key] = value.value.serialize()
-    
+
     def __del__(self):
         """
         Update the inner FileHMap with any dirty values in the cache.
         """
         self.write()
-    
+
     def __delitem__(self, key: HashableKey):
         """
         Delete a key from the cache and the inner FileHMap.
-        
+
         # Parameters
         - key (HashableKey): The key to delete.
         """

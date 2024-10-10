@@ -28,7 +28,7 @@ class TestCachedHMap(unittest.TestCase):
         del ch
         for k, v in data.items():
             self.assertEqual(fh[k], v.serialize())
-            
+
     @setup_teardown_files
     def test_file_hmap_replace(self, index_path, data_path):
         fh = FileHMap(index_path, data_path, 16, 4)
@@ -60,7 +60,7 @@ class TestCachedHMap(unittest.TestCase):
         del ch
         for k, v in new_data.items():
             self.assertEqual(fh[k], v.serialize())
-            
+
     @setup_teardown_files
     def test_file_hmap_remove(self, index_path, data_path):
         fh = FileHMap(index_path, data_path, 16, 4)
@@ -92,6 +92,7 @@ class TestCachedHMap(unittest.TestCase):
                 self.assertEqual(fh[k], None)
             else:
                 self.assertEqual(fh[k], data[k].serialize())
+
 
 if __name__ == '__main__':
     unittest.main()

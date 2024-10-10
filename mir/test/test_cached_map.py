@@ -5,6 +5,7 @@ from mir.file_map.file_map import FileMap
 from mir.file_map.serde import IntSerde
 from mir.test.file_map_test_utils import setup_teardown_files
 
+
 class TestCachedMap(unittest.TestCase):
     @setup_teardown_files
     def test_file_map_add(self, index_path, data_path):
@@ -18,7 +19,7 @@ class TestCachedMap(unittest.TestCase):
         del cm
         for i, d in enumerate(data):
             self.assertEqual(fm[i], d.serialize())
-        
+
     @setup_teardown_files
     def test_file_map_next_key(self, index_path, data_path):
         fm = FileMap(index_path, data_path, 16)
@@ -31,6 +32,7 @@ class TestCachedMap(unittest.TestCase):
         self.assertEqual(cm.next_key(), len(data) + 6)
         del cm
         self.assertEqual(fm.next_key(), len(data) + 6)
-            
+
+
 if __name__ == "__main__":
     unittest.main()
