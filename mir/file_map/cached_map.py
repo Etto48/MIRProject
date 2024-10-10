@@ -26,7 +26,8 @@ class CachedMap(Generic[T]):
         self.cache_size = cache_size
         self.next_key_value = self.inner.next_key()
         self.serde = serde
-        assert isinstance(self.serde, Serde), f"serde must be an instance of Serde, not {type(self.serde)}"
+        assert isinstance(self.serde, Serde), f"serde must be an instance of Serde, not {
+            type(self.serde)}"
 
     def _cache_pop(self):
         """

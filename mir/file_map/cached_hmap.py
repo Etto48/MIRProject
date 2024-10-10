@@ -26,7 +26,8 @@ class CachedHMap(Generic[T]):
         self.cache: OrderedDict[HashableKey, CacheEntry[T]] = OrderedDict()
         self.cache_size = cache_size
         self.serde = serde
-        assert isinstance(self.serde, Serde), f"serde must be an instance of Serde, not {type(self.serde)}"
+        assert isinstance(self.serde, Serde), f"serde must be an instance of Serde, not {
+            type(self.serde)}"
 
     def _pop_cache(self):
         """
