@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 from mir.file_map.cache_entry import CacheEntry
 from mir.file_map.file_hmap import FileHMap
 from mir.file_map.hashable_key.hashable_key import HashableKey
@@ -7,7 +7,7 @@ from mir.file_map.serde import Serde
 
 T = TypeVar('T', bound=Serde)
 
-class CachedHMap:
+class CachedHMap(Generic[T]):
     """
     Cached wrapper around a FileHMap.
     """
