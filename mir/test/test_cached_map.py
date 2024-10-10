@@ -9,7 +9,7 @@ class TestCachedMap(unittest.TestCase):
     @setup_teardown_files
     def test_file_map_add(self, index_path, data_path):
         fm = FileMap(index_path, data_path, 16)
-        cm = CachedMap[IntSerde](fm, 4, IntSerde)
+        cm = CachedMap(fm, 4, IntSerde)
         data = [IntSerde(x) for x in range(10)]
         for i, d in enumerate(data):
             cm[i] = d
@@ -22,7 +22,7 @@ class TestCachedMap(unittest.TestCase):
     @setup_teardown_files
     def test_file_map_next_key(self, index_path, data_path):
         fm = FileMap(index_path, data_path, 16)
-        cm = CachedMap[IntSerde](fm, 4, IntSerde)
+        cm = CachedMap(fm, 4, IntSerde)
         data = [IntSerde(x) for x in range(10)]
         for i, d in enumerate(data):
             cm[i] = d
