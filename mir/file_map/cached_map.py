@@ -4,7 +4,7 @@ from mir.file_map.cache_entry import CacheEntry
 from mir.file_map.file_map import FileMap
 from mir.file_map.serde import Serde
 
-T = TypeVar('T', bound=Serde)
+T = TypeVar('T')
 
 
 class CachedMap(Generic[T]):
@@ -12,20 +12,21 @@ class CachedMap(Generic[T]):
     Cached wrapper around a FileMap.
     """
 
-    def __init__(self, file_map: FileMap, cache_size: int, serde: type[T]):
+    def __init__(self, file_map: FileMap, cache_size: int, serde: Serde[T]):
         """
         Initialize a CachedMap.
 
         # Parameters
         - file_map (FileMap): The FileMap to wrap.
         - cache_size (int): The maximum number of entries to cache.
-        - serde (type[T]): The Serde type to use for serialization and deserialization.
+        - serde (Serde): The Serde class that contains the serialization and deserialization functions.
         """
         self.inner = file_map
         self.cache: OrderedDict[int, CacheEntry[T]] = OrderedDict()
         self.cache_size = cache_size
         self.next_key_value = self.inner.next_key()
         self.serde = serde
+        assert isinstance(self.serde, Serde), f"serde must be an instance of Serde, not {type(self.serde)}"
 
     def _cache_pop(self):
         """
@@ -33,7 +34,7 @@ class CachedMap(Generic[T]):
         """
         old_key, old_value = self.cache.popitem(last=False)
         if old_value.dirty:
-            self.inner[old_key] = old_value.value.serialize()
+            self.inner[old_key] = self.serde.serialize(old_value.value)
 
     def __getitem__(self, key: int) -> T:
         """
@@ -90,7 +91,7 @@ class CachedMap(Generic[T]):
         """
         for key, value in self.cache.items():
             if value.dirty:
-                self.inner[key] = value.value.serialize()
+                self.inner[key] = self.serde.serialize(value.value)
 
     def __del__(self):
         """
