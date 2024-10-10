@@ -7,7 +7,7 @@ class Serde(Protocol):
     def serialize(self) -> bytes:
         ...
 
-    @staticmethod
+    @abstractmethod
     def deserialize(data: bytes) -> 'Serde':
         ...
 
@@ -22,7 +22,6 @@ class IntSerde(Serde):
     def serialize(self) -> bytes:
         return self.value.to_bytes(8, 'big')
 
-    @staticmethod
     def deserialize(data: bytes) -> 'IntSerde':
         return IntSerde(int.from_bytes(data[:8], 'big'))
 
