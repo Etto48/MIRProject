@@ -46,7 +46,8 @@ class TokenizerIr(Ir):
         # 2 - Processing Author
         for idx, aword in enumerate(title_list) :
             # No Stopwords removal for author
-            # No Stemming for author names 
+            # 2a Stemming author names 
+            aword = self.stemmer.stem(aword)
             token_list.append(Token(aword, TokenLocation.AUTHOR_NAME, idx))
 
         # 3 - Processing Title
@@ -71,9 +72,20 @@ class TokenizerIr(Ir):
         return token_list
 
 
-    def process_query(self, query: str) -> list[str]:
-        query_tokens = query.lower().split()
-        return [token for token in query_tokens if token not in self.stopwords]
+    def process_query(self, query: str) -> list:
+        
+        # 1 - Token Creation
+        query_list = query.translate(str.maketrans('','', string.punctuation)).lower().split()
+        token_list = []
+
+        # 2 - Processing Query
+        for idx, word in enumerate(query_list) :
+            # No stopwords removal for query
+            # 2a - Stemming query words
+            word = self.stemmer.stem(word)
+            token_list.append(Token(word, TokenLocation.QUERY, idx)) 
+        
+        return token_list
 
     def score(self, document: Document, postings: list[Posting], query: list[Term]) -> float:
         return float(len(postings))

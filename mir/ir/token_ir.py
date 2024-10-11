@@ -3,6 +3,7 @@ from enum import Enum
 
 
 class TokenLocation(Enum) :
+    QUERY = 0
     AUTHOR_NAME = 1
     TITLE = 2
     BODY = 3
