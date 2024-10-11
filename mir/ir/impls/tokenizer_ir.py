@@ -9,7 +9,7 @@ from mir.ir.document_contents import DocumentContents
 from mir.ir.ir import Ir
 from mir.ir.posting import Posting
 from mir.ir.term import Term
-from mir.ir.token import Token
+from mir.ir.token_ir import Token, TokenLocation
 
 
 class TokenizerIr(Ir):
@@ -47,7 +47,7 @@ class TokenizerIr(Ir):
         for idx, aword in enumerate(title_list) :
             # No Stopwords removal for author
             # No Stemming for author names 
-            token_list.append(Token(aword, 0, idx))
+            token_list.append(Token(aword, TokenLocation.AUTHOR_NAME, idx))
 
         # 3 - Processing Title
         for idx, tword in enumerate(title_list) :
@@ -55,7 +55,7 @@ class TokenizerIr(Ir):
             # No Stopwords removal for title
             # 3a - Stemming title words 
             tword = self.stemmer.stem(tword)
-            token_list.append(Token(tword, 1, idx))
+            token_list.append(Token(tword, TokenLocation.TITLE, idx))
 
 
         # 4 - Processing Body    
@@ -65,7 +65,7 @@ class TokenizerIr(Ir):
             if not bword in self.stopwords : 
                 # 4b - Stemming body words
                 bword = self.stemmer.stem(bword)
-                token_list.append(Token(bword, 2, idx))
+                token_list.append(Token(bword, TokenLocation.BODY, idx))
         
         # Returns list of tokens
         return token_list
