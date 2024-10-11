@@ -9,5 +9,5 @@ present in the title or in the body (lyrics) of the song
 @dataclass
 class Token:
     token: str
-    is_in_title: bool
+    where: int # 0 = Author Name , 1 = Title , 2 = Body
     position: int

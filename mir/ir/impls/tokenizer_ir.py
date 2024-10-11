@@ -37,33 +37,36 @@ class TokenizerIr(Ir):
     def process_document(self, document_content: DocumentContents) -> list:
         
         # 1 - Token creation 
+        author_list = document_content.author.translate(str.maketrans('','', string.punctuation)).lower().split()
         title_list = document_content.title.translate(str.maketrans('','', string.punctuation)).lower().split()
         body_list = document_content.body.translate(str.maketrans('','', string.punctuation)).lower().split()
         
         token_list = []
 
+        # 2 - Processing Author
+        for idx, aword in enumerate(title_list) :
+            # No Stopwords removal for author
+            # No Stemming for author names 
+            token_list.append(Token(aword, 0, idx))
 
-        # 2 - Processing Title
+        # 3 - Processing Title
         for idx, tword in enumerate(title_list) :
 
-            # 2a - Stemming title words 
-            tword = self.stemmer.stem(tword)
-
             # No Stopwords removal for title
-            if not tword in self.stopwords : 
-                token_list.append(Token(tword, True, idx))
+            # 3a - Stemming title words 
+            tword = self.stemmer.stem(tword)
+            token_list.append(Token(tword, 1, idx))
 
 
-        # 3 - Processing Body    
+        # 4 - Processing Body    
         for idx, bword in enumerate(body_list) :
 
-            # 3a - Stemming body words
-            bword = self.stemmer.stem(bword)
-
-            # 3b - If clause removes Stopwords in Body
+            # 4a - If clause removes Stopwords in Body
             if not bword in self.stopwords : 
-                token_list.append(Token(bword, False, idx))
-
+                # 4b - Stemming body words
+                bword = self.stemmer.stem(bword)
+                token_list.append(Token(bword, 2, idx))
+        
         # Returns list of tokens
         return token_list
 
