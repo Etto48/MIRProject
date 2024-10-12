@@ -1,5 +1,6 @@
 class DocumentContents:
-    def __init__(self, title: str, body: str, **kwargs):
+    def __init__(self, author: str, title: str, body: str, **kwargs):
+        self.author = author
         self.title = title
         self.body = body
         self.__dict__.update(kwargs)
