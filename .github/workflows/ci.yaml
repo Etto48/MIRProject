@@ -29,11 +29,11 @@ jobs:
     
 
     - name: Check for artifact existence
-        id: check_artifact
-        run: |
-          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
-            | jq '.artifacts | map(select(.name == "artifact-name")) | length'
+      id: check_artifact
+      run: |
+        curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+          | jq '.artifacts | map(select(.name == "artifact-name")) | length'
 
     - name: Download data artifact
       uses: actions/download-artifact@v4
