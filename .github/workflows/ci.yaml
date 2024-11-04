@@ -1,5 +1,9 @@
 name: Continuous Integration
 
+env:
+  KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+  KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+
 on:
   push:
     branches:
