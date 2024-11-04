@@ -38,8 +38,9 @@ def get_dataset(verbose=False) -> pd.DataFrame:
                             "username": os.getenv("KAGGLE_USERNAME"),
                             "key": os.getenv("KAGGLE_KEY")
                         }
-                with open(f"{DATA_DIR}/kaggle.json") as f:
-                    kaggle_data = json.load(f)
+                else:
+                    with open(f"{DATA_DIR}/kaggle.json") as f:
+                        kaggle_data = json.load(f)
             os.environ["KAGGLE_USERNAME"] = kaggle_data["username"]
             os.environ["KAGGLE_KEY"] = kaggle_data["key"]
             import kaggle
