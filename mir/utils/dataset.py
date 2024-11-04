@@ -30,8 +30,14 @@ def get_dataset(verbose=False) -> pd.DataFrame:
                 kaggle_data = json.loads(userdata.get("kaggle"))
             else:
                 if not os.path.exists(f"{DATA_DIR}/kaggle.json"):
-                    raise FileNotFoundError(
-                        "Kaggle API credentials not found. Please add kaggle.json to the data directory.")
+                    if os.getenv("KAGGLE_USERNAME") is None or os.getenv("KAGGLE_KEY") is None:
+                        raise FileNotFoundError(
+                            "Kaggle API credentials not found. Please add kaggle.json to the data directory.")
+                    else:
+                        kaggle_data = {
+                            "username": os.getenv("KAGGLE_USERNAME"),
+                            "key": os.getenv("KAGGLE_KEY")
+                        }
                 with open(f"{DATA_DIR}/kaggle.json") as f:
                     kaggle_data = json.load(f)
             os.environ["KAGGLE_USERNAME"] = kaggle_data["username"]
