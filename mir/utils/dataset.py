@@ -90,7 +90,7 @@ def dataset_to_contents(df: pd.DataFrame) -> SizedGenerator[DocumentContents, No
     """
     def inner() -> Generator[DocumentContents, None, None]:
         for _, row in df.iterrows():
-            yield DocumentContents(row['song'], row['lyrics'], artist=row['artist'])
+            yield DocumentContents(author=row['artist'], title=row['song'], body=row['lyrics'])
     return SizedGenerator(inner(), len(df))
 
 

@@ -8,13 +8,27 @@ from more_itertools import peekable
 
 from mir.ir.document import Document
 from mir.ir.document_contents import DocumentContents
+from mir.ir.impls.scoring_functions import CountScoringFunction
+from mir.ir.impls.tokenizers import DefaultTokenizer
 from mir.ir.posting import Posting
 from mir.ir.priority_queue import PriorityQueue
 from mir.ir.term import Term
 from mir.utils.types import SizedGenerator
 
-
 class Ir(Protocol):
+    def __init__(self):
+        """
+        Implementations should call the parent constructor
+        at the beginning of their constructor.
+
+        self.tokenizer and self.scoring_functions will be set to default values.
+        """
+        self.tokenizer = DefaultTokenizer()
+        self.scoring_functions = [
+            (1000, CountScoringFunction())
+        ]
+        
+
     @abstractmethod
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
         """
@@ -66,41 +80,12 @@ class Ir(Protocol):
         """
 
     @abstractmethod
-    def process_document(self, doc: DocumentContents) -> list[str]:
+    def __len__(self) -> int:
         """
-        Process a document and return a list of term strings.
-
-        # Parameters
-        - doc (DocumentContents): The document to process.
+        Get the number of documents in the index.
 
         # Returns
-        - list[str]: A list of term strings.
-        """
-
-    @abstractmethod
-    def process_query(self, query: str) -> list[str]:
-        """
-        Process a query and return a list of term strings.
-
-        # Parameters
-        - query (str): The query to process.
-
-        # Returns
-        - list[str]: A list of term strings.
-        """
-
-    @abstractmethod
-    def score(self, document: Document, postings: list[Posting], query: list[Term]) -> float:
-        """
-        Score a document based on the postings and the query.
-
-        # Parameters
-        - document (Document): The document to score.
-        - postings (list[Posting]): The postings related to the document and the query.
-        - query (list[Term]): The query terms.
-
-        # Returns
-        - float: The score of the document.
+        - int: The number of documents in the index.
         """
 
     @abstractmethod
@@ -112,28 +97,37 @@ class Ir(Protocol):
         - doc (DocumentContents): The document to add to the index.
         """
 
-    def search(self, query: str, top_k: int = 1000) -> Generator[DocumentContents, None, None]:
+    def search(self, query: str) -> Generator[DocumentContents, None, None]:
         """
         Search for documents based on a query.
         Uses document-at-a-time scoring.
 
         # Parameters
         - query (str): The query to search for.
-        - top_k (int): The number of documents to return.
+        - scoring_functions (list[ScoringFunction]): A list of scoring functions to use.
 
         # Yields
         - DocumentContents: A document that matches the query. In decreasing order of score.
         It also has a score attribute with the score of the document.
         """
 
-        terms = self.process_query(query)
+        assert len(self.scoring_functions) > 0, "At least one scoring function must be provided"
+
+        ks, scoring_functions = zip(*self.scoring_functions)
+        scoring_functions = list(scoring_functions)
+        ks = list(ks)[::-1]
+
+        
+        terms = self.tokenizer.tokenize_query(query)
         term_ids = [term_id for term in terms if (
-            term_id := self.get_term_id(term)) is not None]
+            term_id := self.get_term_id(term.token)) is not None]
         terms = [self.get_term(term_id) for term_id in term_ids]
         posting_generators = [
             peekable(self.get_postings(term_id)) for term_id in term_ids]
 
-        priority_queue = PriorityQueue(top_k)
+        priority_queue = PriorityQueue(ks[-1])
+        first_scoring_function = scoring_functions[0]
+        postings_cache = {}
 
         while True:
             # find the lowest doc_id among all the posting lists
@@ -164,19 +158,29 @@ class Ir(Protocol):
                     next_posting = next(posting)
                     next_posting.set_attribute("term_id", term_ids[i])
                     postings.append(next_posting)
+            postings_cache[lowest_doc_id] = postings
             # now that we have all the info about the current document, we can score it
-            score = self.score(self.get_document(
-                lowest_doc_id), postings, terms)
+            score = first_scoring_function(self.get_document(lowest_doc_id), postings, terms)
             # we add the score and doc_id to the priority queue
             priority_queue.push(lowest_doc_id, score)
 
         priority_queue.finalise()
 
-        # yield the documents in decreasing order of score
+        for scoring_function in scoring_functions[1:]:
+            ks.pop()
+            new_priority_queue = PriorityQueue(ks[-1])
+            for score, doc_id in priority_queue:
+                postings = postings_cache[doc_id]
+                new_score = scoring_function(self.get_document(doc_id), postings, terms)
+                new_priority_queue.push(doc_id, new_score)
+            new_priority_queue.finalise()
+            priority_queue = new_priority_queue
+        
         for score, doc_id in priority_queue:
-            contents = self.get_document(doc_id).contents
-            contents.set_score(score)
-            yield contents
+            ret = self.get_document(doc_id).contents
+            ret.set_score(score)
+            yield ret
+                
 
     def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], verbose: bool = False) -> None:
         """
@@ -189,7 +193,7 @@ class Ir(Protocol):
         for doc in tqdm(docs, desc="Indexing documents", disable=not verbose, total=len(docs)):
             self.index_document(doc)
 
-    def get_run(self, queries: pd.DataFrame, top_k: int, verbose: bool = False) -> pd.DataFrame:
+    def get_run(self, queries: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
         """
         Generate a run file for the given queries in the form of a pandas DataFrame.
         You can encode it to a file using a tab separator and the to_csv method.
@@ -197,7 +201,6 @@ class Ir(Protocol):
         # Parameters
         - queries (pd.DataFrame): A DataFrame with the queries to run. 
         It must have the columns "query_id" and "text".
-        - top_k (int): The number of documents to return for each query.
         - verbose (bool): Whether to show a progress bar.
 
         # Returns
@@ -209,12 +212,10 @@ class Ir(Protocol):
         for _, query_row in tqdm(queries.iterrows(), desc="Running queries", disable=not verbose):
             query_id = query_row["query_id"]
             query = query_row["text"]
-            for rank, doc in enumerate(self.search(query, top_k), start=1):
+            for rank, doc in enumerate(self.search(query), start=1):
                 run.loc[len(run)] = [
                     query_id, "Q0",
                     doc.title, rank, doc.score, self.__class__.__name__]
-                if rank == top_k:
-                    break
         run.reset_index(drop=True, inplace=True)
         return run
 
