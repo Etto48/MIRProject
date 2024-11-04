@@ -29,13 +29,14 @@ jobs:
     
 
     - name: Check for artifact existence
-      id: check_artifact
-      run: |
-        curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" | jq '.artifacts | map(select(.name == "data")) | length'
+      uses: xSAVIKx/artifact-exists-action@v0
+      id: check_data_artifact
+      with:
+        name: data
 
     - name: Download data artifact
       uses: actions/download-artifact@v4
-      if: steps.check_artifact.outputs.artifact == 1
+      if: steps.check_data_artifact.outputs.exists == 'true'
       with:
         name: data
         path: data
