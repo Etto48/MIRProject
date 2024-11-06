@@ -4,7 +4,7 @@ from mir.file_map.cached_hmap import CachedHMap
 from mir.file_map.file_hmap import FileHMap
 from mir.file_map.hashable_key.impls.str_hk import StrHK
 from mir.file_map.serde import INT_SERDE
-from mir.test.file_map_test_utils import setup_teardown_files
+from mir.test.file_list_test_utils import setup_teardown_files
 
 
 class TestCachedHMap(unittest.TestCase):

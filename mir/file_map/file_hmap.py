@@ -1,12 +1,12 @@
 from typing import Optional
-from mir.file_map.file_map import FileMap
+from mir.file_map.file_list import FileList
 from mir.file_map.hashable_key.hashable_key import HashableKey
 
 
 class FileHMap:
     """
     This class is a hash map that stores values in a file.
-    It uses FileMap to store the values.
+    It uses FileList to store the values.
     Replacing a value is slow because the whole row must be kept in memory and rewritten.
     """
     
@@ -20,7 +20,7 @@ class FileHMap:
         - block_size (int): The size of the blocks in the data file.
         - hash_size (int): The size of the hash table.
         """
-        self.inner = FileMap(index, path, block_size)
+        self.inner = FileList(index, path, block_size)
         self.hash_size = hash_size
         
     def __getitem__(self, key: HashableKey) -> Optional[bytes]:

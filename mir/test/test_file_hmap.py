@@ -2,7 +2,7 @@ import unittest
 
 from mir.file_map.file_hmap import FileHMap
 from mir.file_map.hashable_key.impls.str_hk import StrHK
-from mir.test.file_map_test_utils import setup_teardown_files
+from mir.test.file_list_test_utils import setup_teardown_files
 
 
 class TestFileHMap(unittest.TestCase):

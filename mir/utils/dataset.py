@@ -1,6 +1,7 @@
 from collections.abc import Generator
 import gzip
 import tarfile
+import numpy as np
 import requests
 from mir import DATA_DIR, COLAB
 import pandas as pd
@@ -90,6 +91,19 @@ def get_dataset(verbose=False) -> pd.DataFrame:
         print("Dataset loaded.")
     return filtered_df
 
+def get_subdataset(verbose: bool = False, amount: int = 100, seed: int = None) -> pd.DataFrame:
+    """
+    Returns a random subset of the dataset.
+
+    Parameters:
+    - verbose (bool): Whether to show progress bars.
+    - amount (int): The number of documents to return.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+    ret = get_dataset(verbose)
+    indices = np.random.choice(range(len(ret)), amount)
+    return ret.iloc[indices]
 
 def dataset_to_contents(df: pd.DataFrame) -> SizedGenerator[DocumentContents, None, None]:
     """

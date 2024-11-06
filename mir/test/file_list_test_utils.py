@@ -6,8 +6,8 @@ from mir import DATA_DIR
 
 def setup_teardown_files(func: Callable) -> Callable:
     def wrapper(self):
-        index_path = f"{DATA_DIR}/test/file_map_{func.__name__}.index"
-        data_path = f"{DATA_DIR}/test/file_map_{func.__name__}.data"
+        index_path = f"{DATA_DIR}/test/file_list_{func.__name__}.index"
+        data_path = f"{DATA_DIR}/test/file_list_{func.__name__}.data"
         try:
             os.remove(index_path)
         except FileNotFoundError:

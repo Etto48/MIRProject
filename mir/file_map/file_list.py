@@ -2,7 +2,7 @@ from collections.abc import Generator
 import os
 
 
-class FileMap:
+class FileList:
     """
     This class is a simple key-value store that stores values in a file.
     Keys are integers and values are bytes.
@@ -13,25 +13,25 @@ class FileMap:
     The size of the index file depends on the maximum key used.
     """
     
-    def __init__(self, index: str, path: str, block_size: int = 1024):
+    def __init__(self, index: str, data: str, block_size: int = 1024):
         """
-        Initialize the FileMap.
+        Initialize the FileList.
         
         # Parameters
         - index (str): The path to the index file.
-        - path (str): The path to the data file.
+        - data (str): The path to the data file.
         - block_size (int): The size of the blocks in the data file.
         """
         
         os.makedirs(os.path.dirname(index), exist_ok=True)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        os.makedirs(os.path.dirname(data), exist_ok=True)
         self.index_path = index
         if not os.path.exists(index):
             with open(index, "wb") as f:
                 pass
-        self.path = path
-        if not os.path.exists(path):
-            with open(path, "wb") as f:
+        self.path = data
+        if not os.path.exists(data):
+            with open(data, "wb") as f:
                 pass
         self.next_offset_size = 8
         if block_size < self.next_offset_size + 1:
@@ -57,7 +57,7 @@ class FileMap:
 
     def __getitem__(self, key: int) -> bytes:
         """
-        Get a value from the FileMap.
+        Get a value from the FileList.
         
         # Parameters
         - key (int): The key of the value.
@@ -87,7 +87,7 @@ class FileMap:
     
     def get_item_as_stream(self, key: int) -> Generator[bytes, None, None]:
         """
-        Get a value from the FileMap as a stream.
+        Get a value from the FileList as a stream.
         
         # Parameters
         - key (int): The key of the value.
@@ -120,7 +120,7 @@ class FileMap:
 
     def __setitem__(self, key: int, value: bytes) -> None:
         """
-        Set a value in the FileMap.
+        Set a value in the FileList.
         
         # Parameters
         - key (int): The key of the value.
@@ -184,7 +184,7 @@ class FileMap:
 
     def append(self, key: int, value: bytes) -> None:
         """
-        Append a value to another value in the FileMap.
+        Append a value to another value in the FileList.
         
         # Parameters
         - key (int): The key of the value.

@@ -1,15 +1,13 @@
-from typing import Callable
 import unittest
-import os
 
 from mir import DATA_DIR
-from mir.file_map.file_map import FileMap
-from mir.test.file_map_test_utils import setup_teardown_files
+from mir.file_map.file_list import FileList
+from mir.test.file_list_test_utils import setup_teardown_files
 
-class TestFileMap(unittest.TestCase):
+class TestFileList(unittest.TestCase):
     @setup_teardown_files
     def test_file_map_add(self, index_path, data_path):
-        fm = FileMap(index_path, data_path, 16)
+        fm = FileList(index_path, data_path, 16)
         data = [
             b"pls",
             b"work",
@@ -27,7 +25,7 @@ class TestFileMap(unittest.TestCase):
 
     @setup_teardown_files
     def test_file_map_extend(self, index_path, data_path):
-        fm = FileMap(index_path, data_path, 16)
+        fm = FileList(index_path, data_path, 16)
         data = [
             b"pls",
             b"work",
@@ -57,7 +55,7 @@ class TestFileMap(unittest.TestCase):
         
     @setup_teardown_files
     def test_file_map_shrink(self, index_path, data_path):
-        fm = FileMap(index_path, data_path, 16)
+        fm = FileList(index_path, data_path, 16)
         data = [
             b"pls work plspls",
             b"work pleaseeeee",
@@ -87,7 +85,7 @@ class TestFileMap(unittest.TestCase):
         
     @setup_teardown_files
     def test_file_map_skip_index(self, index_path, data_path):
-        fm = FileMap(index_path, data_path, 16)
+        fm = FileList(index_path, data_path, 16)
         data = {
             0: b"pls",
             1: b"work",
@@ -103,7 +101,7 @@ class TestFileMap(unittest.TestCase):
         
     @setup_teardown_files
     def test_file_map_next_key(self, index_path, data_path):
-        fm = FileMap(index_path, data_path, 16)
+        fm = FileList(index_path, data_path, 16)
         data = [
             b"pls",
             b"work",
@@ -123,7 +121,7 @@ class TestFileMap(unittest.TestCase):
         
     @setup_teardown_files
     def test_file_map_stream(self, index_path, data_path):
-        fm = FileMap(index_path, data_path, 16)
+        fm = FileList(index_path, data_path, 16)
         data = [
             b"pls",
             b"work",
@@ -141,7 +139,7 @@ class TestFileMap(unittest.TestCase):
     
     @setup_teardown_files
     def test_file_map_append(self, index_path, data_path):
-        fm = FileMap(index_path, data_path, 16)
+        fm = FileList(index_path, data_path, 16)
         data = [
             b"pls",
             b"work",
@@ -164,7 +162,7 @@ class TestFileMap(unittest.TestCase):
             
     @setup_teardown_files
     def test_file_map_concurrent(self, index_path, data_path):
-        fm = FileMap(index_path, data_path, 16)
+        fm = FileList(index_path, data_path, 16)
         data = [
             b"pls",
             b"work",

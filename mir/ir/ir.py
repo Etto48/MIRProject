@@ -8,94 +8,51 @@ from more_itertools import peekable
 
 from mir.ir.document import Document
 from mir.ir.document_contents import DocumentContents
-from mir.ir.impls.scoring_functions import CountScoringFunction
-from mir.ir.impls.tokenizers import DefaultTokenizer
+from mir.ir.impls.default_index import DefaultIndex
+from mir.ir.impls.count_scoring_function import CountScoringFunction
+from mir.ir.impls.default_tokenizers import DefaultTokenizer
+from mir.ir.index import Index
 from mir.ir.posting import Posting
 from mir.ir.priority_queue import PriorityQueue
+from mir.ir.scoring_function import ScoringFunction
 from mir.ir.term import Term
+from mir.ir.tokenizer import Tokenizer
 from mir.utils.types import SizedGenerator
 
-class Ir(Protocol):
-    def __init__(self):
-        """
-        Implementations should call the parent constructor
-        at the beginning of their constructor.
-
-        self.tokenizer and self.scoring_functions will be set to default values.
-        """
-        self.tokenizer = DefaultTokenizer()
-        self.scoring_functions = [
+class Ir:
+    def __init__(self, index: Optional[Index] = None, tokenizer: Optional[Tokenizer] = None, scoring_functions: Optional[list[tuple[int, ScoringFunction]]] = None):
+        self.index = index or DefaultIndex()
+        self.tokenizer = tokenizer or DefaultTokenizer()
+        self.scoring_functions = scoring_functions or [
             (1000, CountScoringFunction())
         ]
-        
 
-    @abstractmethod
-    def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
-        """
-        Get a generator of postings for a term_id.
-        MUST be sorted by doc_id.
 
-        # Parameters
-        - term_id (int): The term_id.
 
-        # Yields
-        - Posting: A posting from the posting list related to the term_id.
-        """
-
-    @abstractmethod
-    def get_document(self, doc_id: int) -> Document:
-        """
-        Get document info from a doc_id.
-
-        # Parameters
-        - doc_id (int): The doc_id.
-
-        # Returns
-        - Document: The document related to the doc_id.
-        """
-
-    @abstractmethod
-    def get_term(self, term_id: int) -> Term:
-        """
-        Get term info from a term_id.
-
-        # Parameters
-        - term_id (int): The term_id.
-
-        # Returns
-        - Term: The term related to the term_id.
-        """
-
-    @abstractmethod
-    def get_term_id(self, term: str) -> Optional[int]:
-        """
-        Get term_id from a term in string format.
-        Returns None if the term is not in the index.
-
-        # Parameters
-        - term (str): The term in string format.
-
-        # Returns
-        - Optional[int]: The term_id related to the term or None if the term is not in the index.
-        """
-
-    @abstractmethod
     def __len__(self) -> int:
         """
         Get the number of documents in the index.
-
-        # Returns
-        - int: The number of documents in the index.
         """
+        return len(self.index)
 
-    @abstractmethod
     def index_document(self, doc: DocumentContents) -> None:
         """
-        Add a document to the index.
+        Index a document.
 
         # Parameters
-        - doc (DocumentContents): The document to add to the index.
+        - doc (DocumentContents): The document to index.
         """
+        self.index.index_document(doc, self.tokenizer)
+
+    def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], verbose: bool = False) -> None:
+        """
+        Bulk index documents.
+
+        # Parameters
+        - docs (SizedGenerator[DocumentContents, None, None]): A generator of documents to index.
+        - verbose (bool): Whether to show a progress bar.
+        """
+        self.index.bulk_index_documents(docs, self.tokenizer, verbose)
 
     def search(self, query: str) -> Generator[DocumentContents, None, None]:
         """
@@ -120,10 +77,10 @@ class Ir(Protocol):
         
         terms = self.tokenizer.tokenize_query(query)
         term_ids = [term_id for term in terms if (
-            term_id := self.get_term_id(term.token)) is not None]
-        terms = [self.get_term(term_id) for term_id in term_ids]
+            term_id := self.index.get_term_id(term.token)) is not None]
+        terms = [self.index.get_term(term_id) for term_id in term_ids]
         posting_generators = [
-            peekable(self.get_postings(term_id)) for term_id in term_ids]
+            peekable(self.index.get_postings(term_id)) for term_id in term_ids]
 
         priority_queue = PriorityQueue(ks[-1])
         first_scoring_function = scoring_functions[0]
@@ -160,7 +117,7 @@ class Ir(Protocol):
                     postings.append(next_posting)
             postings_cache[lowest_doc_id] = postings
             # now that we have all the info about the current document, we can score it
-            score = first_scoring_function(self.get_document(lowest_doc_id), postings, terms)
+            score = first_scoring_function(self.index.get_document(lowest_doc_id), postings, terms)
             # we add the score and doc_id to the priority queue
             priority_queue.push(lowest_doc_id, score)
 
@@ -171,27 +128,15 @@ class Ir(Protocol):
             new_priority_queue = PriorityQueue(ks[-1])
             for score, doc_id in priority_queue:
                 postings = postings_cache[doc_id]
-                new_score = scoring_function(self.get_document(doc_id), postings, terms)
+                new_score = scoring_function(self.index.get_document(doc_id), postings, terms)
                 new_priority_queue.push(doc_id, new_score)
             new_priority_queue.finalise()
             priority_queue = new_priority_queue
         
         for score, doc_id in priority_queue:
-            ret = self.get_document(doc_id).contents
+            ret = self.index.get_document(doc_id).contents
             ret.set_score(score)
             yield ret
-                
-
-    def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], verbose: bool = False) -> None:
-        """
-        Add multiple documents to the index, this calls index_document for each document.
-
-        # Parameters
-        - docs (SizedGenerator[DocumentContents, None, None]): A generator of documents to add to the index.
-        - verbose (bool): Whether to show a progress bar.
-        """
-        for doc in tqdm(docs, desc="Indexing documents", disable=not verbose, total=len(docs)):
-            self.index_document(doc)
 
     def get_run(self, queries: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
         """
@@ -209,7 +154,7 @@ class Ir(Protocol):
         """
         run = pd.DataFrame(
             columns=["query_id", "Q0", "document_no", "rank", "score", "run_id"])
-        for _, query_row in tqdm(queries.iterrows(), desc="Running queries", disable=not verbose):
+        for _, query_row in tqdm(queries.iterrows(), desc="Running queries", disable=not verbose, total=len(queries)):
             query_id = query_row["query_id"]
             query = query_row["text"]
             for rank, doc in enumerate(self.search(query), start=1):
@@ -224,13 +169,14 @@ if __name__ == "__main__":
     from mir.utils.dataset import dataset_to_contents
     from mir.utils.dataset import get_dataset
     from mir.utils.decorators import profile
-    from mir.ir.impls.naive_ir import NaiveIr
 
-    impls = [NaiveIr]
+    impls = [
+        Ir()
+    ]
     ds = get_dataset(verbose=True)
 
     for impl in impls:
-        ir = impl()
+        ir = impl
 
         @profile
         def index():
@@ -252,7 +198,7 @@ if __name__ == "__main__":
                     "i want to break free",
                 ]
             })
-            return ir.get_run(queries, top_k=1000, verbose=True)
+            return ir.get_run(queries, verbose=True)
 
         (run_file, run_rime) = run()
 

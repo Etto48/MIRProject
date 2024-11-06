@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from typing import Callable, Generic, Optional, TypeVar, get_args
 from mir.file_map.cache_entry import CacheEntry
-from mir.file_map.file_map import FileMap
+from mir.file_map.file_list import FileList
 from mir.file_map.serde import Serde
 
 T = TypeVar('T')
@@ -9,15 +9,15 @@ T = TypeVar('T')
 
 class CachedMap(Generic[T]):
     """
-    Cached wrapper around a FileMap.
+    Cached wrapper around a FileList.
     """
 
-    def __init__(self, file_map: FileMap, cache_size: int, serde: Serde[T]):
+    def __init__(self, file_map: FileList, cache_size: int, serde: Serde[T]):
         """
         Initialize a CachedMap.
 
         # Parameters
-        - file_map (FileMap): The FileMap to wrap.
+        - file_map (FileList): The FileList to wrap.
         - cache_size (int): The maximum number of entries to cache.
         - serde (Serde): The Serde class that contains the serialization and deserialization functions.
         """
@@ -31,7 +31,7 @@ class CachedMap(Generic[T]):
 
     def _cache_pop(self):
         """
-        Pop the least recently used value from the cache and write it to the inner FileMap.
+        Pop the least recently used value from the cache and write it to the inner FileList.
         """
         old_key, old_value = self.cache.popitem(last=False)
         if old_value.dirty:
@@ -39,7 +39,7 @@ class CachedMap(Generic[T]):
 
     def __getitem__(self, key: int) -> T:
         """
-        Retrieve a value from the cache or the inner FileMap.
+        Retrieve a value from the cache or the inner FileList.
 
         # Parameters
         - key (int): The key to retrieve.
@@ -60,7 +60,7 @@ class CachedMap(Generic[T]):
 
     def __setitem__(self, key: int, value: T):
         """
-        Set a value in the cache or the inner FileMap.
+        Set a value in the cache or the inner FileList.
 
         # Parameters
         - key (int): The key to set.
@@ -88,7 +88,7 @@ class CachedMap(Generic[T]):
 
     def write(self):
         """
-        Write any dirty values in the cache to the inner FileMap.
+        Write any dirty values in the cache to the inner FileList.
         """
         for key, value in self.cache.items():
             if value.dirty:
@@ -96,6 +96,6 @@ class CachedMap(Generic[T]):
 
     def __del__(self):
         """
-        Update the inner FileMap with any dirty values in the cache.
+        Update the inner FileList with any dirty values in the cache.
         """
         self.write()
