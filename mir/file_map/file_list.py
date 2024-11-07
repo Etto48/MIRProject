@@ -29,7 +29,7 @@ class FileList:
         if not os.path.exists(index):
             with open(index, "wb") as f:
                 pass
-        self.path = data
+        self.data_path = data
         if not os.path.exists(data):
             with open(data, "wb") as f:
                 pass
@@ -70,7 +70,7 @@ class FileList:
             return b""
         ret = b""
         size_read = 0
-        with open(self.path, "rb") as f:
+        with open(self.data_path, "rb") as f:
             while True:
                 f.seek(offset)
                 block = f.read(self.block_size)
@@ -99,7 +99,7 @@ class FileList:
         except KeyError:
             return
         size_read = 0
-        with open(self.path, "rb") as f:
+        with open(self.data_path, "rb") as f:
             while True:
                 f.seek(offset)
                 block = f.read(self.block_size)
@@ -127,7 +127,7 @@ class FileList:
         - value (bytes): The value.
         """
         
-        file_size = os.path.getsize(self.path)
+        file_size = os.path.getsize(self.data_path)
         value_length = len(value)
         try:
             offset, length = self._index_get(key)
@@ -142,7 +142,7 @@ class FileList:
         starting_offset = offset
         i = 0
 
-        with open(self.path, "r+b") as f:
+        with open(self.data_path, "r+b") as f:
             while True:
                 f.seek(offset)
                 if overwriting:
@@ -191,7 +191,7 @@ class FileList:
         - value (bytes): The additional bytes to append.
         """
         
-        file_size = os.path.getsize(self.path)
+        file_size = os.path.getsize(self.data_path)
         value_length = len(value)
         try:
             offset, length = self._index_get(key)
@@ -207,7 +207,7 @@ class FileList:
         starting_offset = offset
         i = 0
 
-        with open(self.path, "r+b") as f:
+        with open(self.data_path, "r+b") as f:
             while True:
                 start_offset = i*(self.block_size - self.next_offset_size)
                 end_offset = (i+1)*(self.block_size - self.next_offset_size)
