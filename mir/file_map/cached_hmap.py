@@ -55,7 +55,7 @@ class CachedHMap(Generic[T]):
                 case None:
                     return None
                 case something:
-                    value = self.serde.deserialize(something)
+                    value = self.serde.deserialize(something, key)
                     self.cache[key] = CacheEntry(value)
                     if len(self.cache) > self.cache_size:
                         self._pop_cache()

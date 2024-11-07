@@ -52,7 +52,7 @@ class CachedList(Generic[T]):
             return self.cache[key].value
         else:
             value = self.inner[key]
-            value = self.serde.deserialize(value)
+            value = self.serde.deserialize(value, key)
             self.cache[key] = CacheEntry(value)
             if len(self.cache) > self.cache_size:
                 self._cache_pop()
