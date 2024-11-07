@@ -1,26 +1,31 @@
-from abc import abstractmethod
 from collections.abc import Generator
-from typing import Optional, Protocol
+from typing import Optional
 
 import pandas as pd
 from tqdm.auto import tqdm
 from more_itertools import peekable
 
-from mir.ir.document import Document
 from mir.ir.document_contents import DocumentContents
 from mir.ir.impls.default_index import DefaultIndex
 from mir.ir.impls.count_scoring_function import CountScoringFunction
 from mir.ir.impls.default_tokenizers import DefaultTokenizer
 from mir.ir.index import Index
-from mir.ir.posting import Posting
 from mir.ir.priority_queue import PriorityQueue
 from mir.ir.scoring_function import ScoringFunction
-from mir.ir.term import Term
 from mir.ir.tokenizer import Tokenizer
 from mir.utils.types import SizedGenerator
 
 class Ir:
     def __init__(self, index: Optional[Index] = None, tokenizer: Optional[Tokenizer] = None, scoring_functions: Optional[list[tuple[int, ScoringFunction]]] = None):
+        """
+        Create an IR system.
+
+        # Parameters
+        - index (Index): The index to use. If None, a DefaultIndex is used.
+        - tokenizer (Tokenizer): The tokenizer to use. If None, a DefaultTokenizer is used.
+        - scoring_functions (Optional[list[tuple[int, ScoringFunction]]]): A list of scoring functions to use, with their respective top_k results to keep.
+        If None CountScoringFunction is used.
+        """
         self.index = index or DefaultIndex()
         self.tokenizer = tokenizer or DefaultTokenizer()
         self.scoring_functions = scoring_functions or [
