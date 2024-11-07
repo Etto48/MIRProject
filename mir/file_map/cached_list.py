@@ -7,14 +7,14 @@ from mir.file_map.serde import Serde
 T = TypeVar('T')
 
 
-class CachedMap(Generic[T]):
+class CachedList(Generic[T]):
     """
     Cached wrapper around a FileList.
     """
 
     def __init__(self, file_map: FileList, cache_size: int, serde: Serde[T]):
         """
-        Initialize a CachedMap.
+        Initialize a CachedList.
 
         # Parameters
         - file_map (FileList): The FileList to wrap.

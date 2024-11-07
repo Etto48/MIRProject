@@ -6,7 +6,7 @@ T = TypeVar('T')
 
 class CacheEntry(Generic[T]):
     """
-    This class is used in CachedHMap and CachedMap to store the status of a cached value.
+    This class is used in CachedHMap and CachedList to store the status of a cached value.
     """
 
     def __init__(self, value: T):
