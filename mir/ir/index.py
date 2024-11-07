@@ -3,7 +3,7 @@ from collections.abc import Generator
 from typing import Optional, Protocol
 from tqdm.auto import tqdm
 
-from mir.ir.document import Document
+from mir.ir.document_info import DocumentInfo
 from mir.ir.document_contents import DocumentContents
 from mir.ir.posting import Posting
 from mir.ir.term import Term
@@ -26,7 +26,7 @@ class Index(Protocol):
         """
 
     @abstractmethod
-    def get_document(self, doc_id: int) -> Document:
+    def get_document_info(self, doc_id: int) -> DocumentInfo:
         """
         Get document info from a doc_id.
 
@@ -34,7 +34,18 @@ class Index(Protocol):
         - doc_id (int): The doc_id.
 
         # Returns
-        - Document: The document related to the doc_id.
+        - DocumentInfo: The document info related to the doc_id.
+        """
+    
+    def get_document_contents(self, doc_id: int) -> DocumentContents:
+        """
+        Get document contents from a doc_id.
+
+        # Parameters
+        - doc_id (int): The doc_id.
+
+        # Returns
+        - DocumentContents: The document contents related to the doc_id.
         """
 
     @abstractmethod

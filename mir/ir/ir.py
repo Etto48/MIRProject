@@ -122,7 +122,7 @@ class Ir:
                     postings.append(next_posting)
             postings_cache[lowest_doc_id] = postings
             # now that we have all the info about the current document, we can score it
-            score = first_scoring_function(self.index.get_document(lowest_doc_id), postings, terms)
+            score = first_scoring_function(self.index.get_document_info(lowest_doc_id), postings, terms)
             # we add the score and doc_id to the priority queue
             priority_queue.push(lowest_doc_id, score)
 
@@ -138,7 +138,7 @@ class Ir:
         priority_queue.finalise()
 
         for score, doc_id in priority_queue:
-            ret = self.index.get_document(doc_id).contents
+            ret = self.index.get_document_contents(doc_id)
             ret.set_score(score)
             yield ret
 
