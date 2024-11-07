@@ -57,4 +57,4 @@ jobs:
     
     - name: Notify same data
       if: steps.hash-data.outputs.hash == steps.hash-data-new.outputs.hash
-      run: echo "Data did not change so no need to save cache"
+      run: echo "Data did not change so no need to save cache, hash ${{ steps.hash-data.outputs.hash }} == ${{ steps.hash-data-new.outputs.hash }}"
