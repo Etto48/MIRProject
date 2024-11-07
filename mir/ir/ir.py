@@ -126,8 +126,6 @@ class Ir:
             # we add the score and doc_id to the priority queue
             priority_queue.push(lowest_doc_id, score)
 
-        priority_queue.finalise()
-
         for scoring_function in scoring_functions[1:]:
             ks.pop()
             new_priority_queue = PriorityQueue(ks[-1])
@@ -135,9 +133,10 @@ class Ir:
                 postings = postings_cache[doc_id]
                 new_score = scoring_function(self.index.get_document(doc_id), postings, terms)
                 new_priority_queue.push(doc_id, new_score)
-            new_priority_queue.finalise()
             priority_queue = new_priority_queue
         
+        priority_queue.finalise()
+
         for score, doc_id in priority_queue:
             ret = self.index.get_document(doc_id).contents
             ret.set_score(score)
