@@ -13,7 +13,7 @@ from mir.ir.index import Index
 from mir.ir.priority_queue import PriorityQueue
 from mir.ir.scoring_function import ScoringFunction
 from mir.ir.tokenizer import Tokenizer
-from mir.utils.types import SizedGenerator
+from mir.utils.sized_generator import SizedGenerator
 
 class Ir:
     def __init__(self, index: Optional[Index] = None, tokenizer: Optional[Tokenizer] = None, scoring_functions: Optional[list[tuple[int, ScoringFunction]]] = None):
