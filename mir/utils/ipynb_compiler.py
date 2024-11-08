@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Optional
 from mir import PROJECT_DIR, DATA_DIR
 
 EXCLUDE_MODULES = [
@@ -34,21 +35,6 @@ def is_dependency(mod: str, other_text: list[str]) -> bool:
             if line.startswith(option):
                 return True
     return False
-
-def dependency_cmp(path1: str, mod1: str, path2: str, mod2: str) -> int:
-    """
-    Compare two modules based on their dependencies.
-    """
-    with open(path1) as f:
-        text1 = f.readlines()
-    with open(path2) as f:
-        text2 = f.readlines()
-    if is_dependency(mod1, text2):
-        return -1
-    elif is_dependency(mod2, text1):
-        return 1
-    else:
-        return 0
     
 def remove_root_imports(text: list[str]) -> list[str]:
     """
@@ -106,9 +92,67 @@ def remove_empty_lines_from_end(text: list[str]) -> list[str]:
         text[-1] = text[-1].strip("\n")
     return text
 
+def remove_redundant_imports(text: list[str], used_imports: set[str]) -> list[str]:
+    """
+    Remove imports that are not used in the text.
+
+    # Parameters
+    - text (list[str]): The text to remove the imports from.
+    - used_imports (set[str]): The set of imports that are used in the text.
+
+    # Returns
+    - list[str]: The text with the unused imports removed.
+    """
+    clean_lines = []
+    for line in text:
+        if line.startswith("import "):
+            if line.split(" ")[1] in used_imports:
+                clean_lines.append("# " + line)
+            else:
+                clean_lines.append(line)
+                used_imports.add(line.split(" ")[1])
+        else:
+            clean_lines.append(line)
+    return clean_lines
+
+def remove_empty_cells(cells: list[dict]) -> list[dict]:
+    """
+    Remove empty cells from a list of cells.
+
+    # Parameters
+    - cells (list[dict]): The list of cells to remove the empty cells from.
+
+    # Returns
+    - list[dict]: The list of cells with the empty cells removed.
+    """
+    new_cells = []
+    for cell in cells:
+        # if all the source code is blank, don't include the cell
+        if all(line.strip() == "" for line in cell["source"][1:]):
+            continue
+        else:
+            new_cells.append(cell)
+    return new_cells
+
+def get_module_name_from_cell(cell: dict) -> Optional[str]:
+    """
+    Get the module name from a cell.
+
+    # Parameters
+    - cell (dict): The cell to get the module name from.
+
+    # Returns
+    - Optional[str]: The module name if available.
+    """
+
+    if cell["source"][0].startswith("#%% === "):
+        return cell["source"][0].split("===")[1].strip()
+    else:
+        return None
+
 def code_to_cell(text: str | list[str]) -> dict:
     """
-    Convert a text to a jupyter notebook cell.
+    Convert a code block to a jupyter notebook cell.
 
     # Parameters
     - text (str): The text to convert to a cell.
@@ -124,6 +168,22 @@ def code_to_cell(text: str | list[str]) -> dict:
             "autoscroll": False
         },
         "outputs": [],
+        "source": text.split("\n") if isinstance(text, str) else text
+    }
+
+def doc_to_cell(text: str | list[str]) -> dict:
+    """
+    Convert a documentation piece to a jupyter notebook cell.
+
+    # Parameters
+    - text (str): The text to convert to a cell.
+
+    # Returns
+    - dict: The cell in jupyter notebook format.
+    """
+    return {
+        "cell_type": "markdown",
+        "metadata": {},
         "source": text.split("\n") if isinstance(text, str) else text
     }
 
@@ -200,7 +260,8 @@ def src_to_ipynb(src_dir: str, doc_dir: str) -> tuple[str, dict]:
     doc_files = []
     for root, _, files in os.walk(doc_dir):
         for file in files:
-            doc_files.append(os.path.join(root, file))
+            if file.endswith(".md"):
+                doc_files.append(os.path.join(root, file))
 
     # topologically sort the files based on their dependencies
     sorted_files = []
@@ -218,15 +279,17 @@ def src_to_ipynb(src_dir: str, doc_dir: str) -> tuple[str, dict]:
     sorted_files.reverse()
 
     for file in sorted_files:
-        print(src_files_to_modules[file])
+        print(f"Module {src_files_to_modules[file]}")
 
     sorted_text_for_files = []
+    used_imports = set()
     for file in sorted_files:
         with open(file) as f:
             lines = f.readlines()
         clean_lines = remove_root_imports(lines)
         clean_lines = remove_main(clean_lines)
         clean_lines = remove_empty_lines_from_end(clean_lines)
+        clean_lines = remove_redundant_imports(clean_lines, used_imports)
         text = "".join(clean_lines)
         text = f"#%% === {src_files_to_modules[file]} ===\n\n" + text
         sorted_text_for_files.append(text)
@@ -239,22 +302,48 @@ def src_to_ipynb(src_dir: str, doc_dir: str) -> tuple[str, dict]:
         f"__file__ = os.path.abspath('')",
     ])
     cells = [code_to_cell(text) for text in sorted_text_for_files]
+    cells = remove_empty_cells(cells)
+    cells = [dep_cell, file_cell] + cells
+    # at this point, we have all the code cells ready, now we need to add the documentation cells at the right places
+    # get all the modules in order, keeping into account removed files and added cells
+    cell_modules = [get_module_name_from_cell(cell) for cell in cells]
+    # load the text of the documentation files
+    # get also the name of the module that the documentation is for
+    doc_text_for_files: list[tuple[Optional[str], str]] = []
+    for file in doc_files:
+        module_name = None
+        with open(file) as f:
+            lines = f.readlines()
+        prefix = "<!-- module:"
+        postfix = "-->\n"
+        if lines and lines[0].startswith(prefix) and lines[0].endswith(postfix):
+            module_name = lines[0][len(prefix):len(lines[0])-len(postfix)].strip()
+            print(f"Found doc for {module_name}")
+            lines = lines[1:]
+        doc_text_for_files.append((module_name, "".join(lines)))
+        
+
+    module_index_hashmap = {module: i for i, module in enumerate(cell_modules) if module is not None}
+    # sort the documentation files based on the order of the modules
+    sorted_doc_text_for_files = sorted(doc_text_for_files, key=lambda x: module_index_hashmap.get(x[0], 0))
+
+    # add the documentation cells to the right places
     new_cells = []
-    for cell in cells:
-        # if all the source code is blank, don't include the cell
-        if all(line.strip() == "" for line in cell["source"][1:]):
-            continue
-        else:
-            new_cells.append(cell)
+    doc_index = 0
+    for module, cell in zip(cell_modules, cells):
+        while doc_index < len(sorted_doc_text_for_files) and sorted_doc_text_for_files[doc_index][0] == module:
+            if module is not None:
+                print(f"Adding doc for {module}")
+            else:
+                print("Adding doc at the beginning")
+            new_cells.append(doc_to_cell(sorted_doc_text_for_files[doc_index][1]))
+            doc_index += 1
+        new_cells.append(cell)
     cells = new_cells
+
 
     jupyter_notebook = {
         "metadata": {
-            "kernelspec": {
-                "display_name": "Python 3",
-                "language": "python",
-                "name": "python3"
-            },
             "language_info": {
                 "codemirror_mode": {
                     "name": "ipython",
@@ -266,7 +355,7 @@ def src_to_ipynb(src_dir: str, doc_dir: str) -> tuple[str, dict]:
                 "version": "3.12"
             }
         },
-        "cells": [dep_cell, file_cell] + cells,
+        "cells": cells,
         "nbformat": 4,
         "nbformat_minor": 2,
     }
