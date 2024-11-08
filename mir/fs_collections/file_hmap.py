@@ -1,6 +1,6 @@
 from typing import Optional
-from mir.file_map.file_list import FileList
-from mir.file_map.hashable_key.hashable_key import HashableKey
+from mir.fs_collections.file_list import FileList
+from mir.fs_collections.hashable_key.hashable_key import HashableKey
 
 
 class FileHMap:
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     from tqdm.auto import tqdm
     from matplotlib import pyplot as plt
     
-    from mir.file_map.hashable_key.impls.str_hk import StrHK
+    from mir.fs_collections.hashable_key.impls.str_hk import StrHK
     index_path = f"{DATA_DIR}/test/fhmap.index"
     data_path = f"{DATA_DIR}/test/fhmap.data"
     os.makedirs(f"{DATA_DIR}/test", exist_ok=True)

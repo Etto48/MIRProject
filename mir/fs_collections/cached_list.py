@@ -1,8 +1,8 @@
 from collections import OrderedDict
 from typing import Callable, Generic, Optional, TypeVar, get_args
-from mir.file_map.cache_entry import CacheEntry
-from mir.file_map.file_list import FileList
-from mir.file_map.serde import Serde
+from mir.fs_collections.cache_entry import CacheEntry
+from mir.fs_collections.file_list import FileList
+from mir.fs_collections.serde import Serde
 
 T = TypeVar('T')
 

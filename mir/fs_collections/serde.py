@@ -2,7 +2,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable, Generic, Protocol, TypeVar
 
-from mir.file_map.hashable_key.hashable_key import HashableKey
+from mir.fs_collections.hashable_key.hashable_key import HashableKey
 
 T = TypeVar('T')
 
