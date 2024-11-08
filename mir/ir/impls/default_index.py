@@ -9,7 +9,7 @@ from mir.ir.index import Index
 from mir.ir.posting import Posting
 from mir.ir.term import Term
 from mir.ir.tokenizer import Tokenizer
-from mir.utils.types import SizedGenerator
+from mir.utils.sized_generator import SizedGenerator
 
 
 class DefaultIndex(Index):

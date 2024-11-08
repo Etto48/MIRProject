@@ -11,7 +11,7 @@ import unidecode
 from tqdm.auto import tqdm
 
 from mir.ir.document_contents import DocumentContents
-from mir.utils.types import SizedGenerator
+from mir.utils.sized_generator import SizedGenerator
 
 
 def get_dataset(verbose=False) -> pd.DataFrame:
