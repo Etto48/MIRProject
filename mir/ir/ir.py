@@ -32,8 +32,6 @@ class Ir:
             (1000, CountScoringFunction())
         ]
 
-
-
     def __len__(self) -> int:
         """
         Get the number of documents in the index.
@@ -122,7 +120,7 @@ class Ir:
                     postings.append(next_posting)
             postings_cache[lowest_doc_id] = postings
             # now that we have all the info about the current document, we can score it
-            score = first_scoring_function(self.index.get_document_info(lowest_doc_id), postings, terms)
+            score = first_scoring_function(self.index.get_document_info(lowest_doc_id), postings, terms, **self.index.get_global_info())
             # we add the score and doc_id to the priority queue
             priority_queue.push(lowest_doc_id, score)
 
@@ -131,7 +129,7 @@ class Ir:
             new_priority_queue = PriorityQueue(ks[-1])
             for score, doc_id in priority_queue:
                 postings = postings_cache[doc_id]
-                new_score = scoring_function(self.index.get_document(doc_id), postings, terms)
+                new_score = scoring_function(self.index.get_document_info(doc_id), postings, terms, **self.index.get_global_info())
                 new_priority_queue.push(doc_id, new_score)
             priority_queue = new_priority_queue
         

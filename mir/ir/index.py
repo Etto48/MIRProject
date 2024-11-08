@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Generator
-from typing import Optional, Protocol
+from typing import Any, Optional, Protocol
 from tqdm.auto import tqdm
 
 from mir.ir.document_info import DocumentInfo
@@ -12,6 +12,15 @@ from mir.utils.types import SizedGenerator
 
 
 class Index(Protocol):
+    def get_global_info(self) -> dict[str, Any]:
+        """
+        Get global info from the index.
+
+        # Returns
+        - dict[str, int]: A dictionary with global info.
+        """
+        return {}
+
     @abstractmethod
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
         """
