@@ -358,9 +358,10 @@ def compile_python_script(sorted_text_for_files: list[str]) -> str:
 def compile_code_cells(sorted_text_for_files: list[str]) -> list[dict]:
     dep_cell = code_to_cell(project_deps_to_notebook_code(src_dir))
     file_cell = code_to_cell([
-        "# define __file__",
+        "# define __file__ and set env variable",
         "import os",
-        f"__file__ = os.path.abspath('')",
+        f"__file__ = os.path.abspath('colab.ipynb')",
+        "os.environ['MIR_NOTEBOOK'] = __file__",
     ])
     cells = [code_to_cell(text) for text in sorted_text_for_files]
     cells = remove_empty_cells(cells)
