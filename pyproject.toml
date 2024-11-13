@@ -12,6 +12,8 @@ license = { file = "LICENSE" }
 dependencies = [
     "pandas",
     "tqdm",
+    "iprogress",
+    "ipywidgets",
     "unidecode",
     "kaggle",
     "GitPython",

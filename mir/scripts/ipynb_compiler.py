@@ -228,7 +228,7 @@ def project_deps_to_notebook_code(src_dir: str) -> list[str]:
             deps.append(line.strip().replace(
                 "\"", "").replace(",", "").replace("\'", ""))
 
-    return ["# install dependencies"] + [f"!pip3 install {dep}" for dep in deps]
+    return ["# install dependencies"] + [f"!pip3 install {" ".join(deps)}"]
 
 
 def c(s: str, color: str, tabs: int = 0) -> str:
