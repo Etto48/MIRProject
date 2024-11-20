@@ -26,9 +26,9 @@ class Ir:
         - scoring_functions (Optional[list[tuple[int, ScoringFunction]]]): A list of scoring functions to use, with their respective top_k results to keep.
         If None CountScoringFunction is used.
         """
-        self.index = index or DefaultIndex()
-        self.tokenizer = tokenizer or DefaultTokenizer()
-        self.scoring_functions = scoring_functions or [
+        self.index: Index = index or DefaultIndex()
+        self.tokenizer: Tokenizer = tokenizer or DefaultTokenizer()
+        self.scoring_functions: list[tuple[int, ScoringFunction]] = scoring_functions or [
             (1000, CountScoringFunction())
         ]
 
