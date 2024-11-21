@@ -9,7 +9,7 @@ from mir.ir.index import Index
 from mir.ir.posting import Posting
 from mir.ir.term import Term
 from mir.ir.tokenizer import Tokenizer
-from mir.utils.types import SizedGenerator
+from mir.utils.sized_generator import SizedGenerator
 
 
 class DefaultIndex(Index):
@@ -62,7 +62,7 @@ class DefaultIndex(Index):
         for term_id in term_ids:
             if term_id >= len(self.postings):
                 self.postings.append(OrderedDict())
-            self.postings[term_id][doc_id] = Posting(doc_id)
+            self.postings[term_id][doc_id] = Posting(doc_id, term_id)
 
     def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], tokenizer: Tokenizer, verbose: bool = False) -> None:
         super().bulk_index_documents(docs, tokenizer, verbose)

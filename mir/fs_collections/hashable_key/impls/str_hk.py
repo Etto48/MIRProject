@@ -1,4 +1,4 @@
-from mir.file_map.hashable_key.hashable_key import HashableKey
+from mir.fs_collections.hashable_key.hashable_key import HashableKey
 
 
 class StrHK(HashableKey):

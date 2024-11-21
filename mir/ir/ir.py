@@ -13,7 +13,7 @@ from mir.ir.index import Index
 from mir.ir.priority_queue import PriorityQueue
 from mir.ir.scoring_function import ScoringFunction
 from mir.ir.tokenizer import Tokenizer
-from mir.utils.types import SizedGenerator
+from mir.utils.sized_generator import SizedGenerator
 
 class Ir:
     def __init__(self, index: Optional[Index] = None, tokenizer: Optional[Tokenizer] = None, scoring_functions: Optional[list[tuple[int, ScoringFunction]]] = None):
@@ -26,13 +26,11 @@ class Ir:
         - scoring_functions (Optional[list[tuple[int, ScoringFunction]]]): A list of scoring functions to use, with their respective top_k results to keep.
         If None CountScoringFunction is used.
         """
-        self.index = index or DefaultIndex()
-        self.tokenizer = tokenizer or DefaultTokenizer()
-        self.scoring_functions = scoring_functions or [
+        self.index: Index = index or DefaultIndex()
+        self.tokenizer: Tokenizer = tokenizer or DefaultTokenizer()
+        self.scoring_functions: list[tuple[int, ScoringFunction]] = scoring_functions or [
             (1000, CountScoringFunction())
         ]
-
-
 
     def __len__(self) -> int:
         """
@@ -118,11 +116,10 @@ class Ir:
             for i, posting in enumerate(posting_generators):
                 if posting.peek().doc_id == lowest_doc_id:
                     next_posting = next(posting)
-                    next_posting.set_attribute("term_id", term_ids[i])
                     postings.append(next_posting)
             postings_cache[lowest_doc_id] = postings
             # now that we have all the info about the current document, we can score it
-            score = first_scoring_function(self.index.get_document_info(lowest_doc_id), postings, terms)
+            score = first_scoring_function(self.index.get_document_info(lowest_doc_id), postings, terms, **self.index.get_global_info())
             # we add the score and doc_id to the priority queue
             priority_queue.push(lowest_doc_id, score)
 
@@ -131,7 +128,7 @@ class Ir:
             new_priority_queue = PriorityQueue(ks[-1])
             for score, doc_id in priority_queue:
                 postings = postings_cache[doc_id]
-                new_score = scoring_function(self.index.get_document(doc_id), postings, terms)
+                new_score = scoring_function(self.index.get_document_info(doc_id), postings, terms, **self.index.get_global_info())
                 new_priority_queue.push(doc_id, new_score)
             priority_queue = new_priority_queue
         

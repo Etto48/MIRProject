@@ -1,8 +1,8 @@
 import unittest
 
-from mir.file_map.cached_list import CachedList
-from mir.file_map.file_list import FileList
-from mir.file_map.serde import INT_SERDE
+from mir.fs_collections.cached_list import CachedList
+from mir.fs_collections.file_list import FileList
+from mir.fs_collections.serde import INT_SERDE
 from mir.test.file_list_test_utils import setup_teardown_files
 
 

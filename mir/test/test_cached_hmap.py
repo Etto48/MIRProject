@@ -1,9 +1,9 @@
 import unittest
 
-from mir.file_map.cached_hmap import CachedHMap
-from mir.file_map.file_hmap import FileHMap
-from mir.file_map.hashable_key.impls.str_hk import StrHK
-from mir.file_map.serde import INT_SERDE
+from mir.fs_collections.cached_hmap import CachedHMap
+from mir.fs_collections.file_hmap import FileHMap
+from mir.fs_collections.hashable_key.impls.str_hk import StrHK
+from mir.fs_collections.serde import INT_SERDE
 from mir.test.file_list_test_utils import setup_teardown_files
 
 

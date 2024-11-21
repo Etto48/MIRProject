@@ -1,7 +1,7 @@
 import unittest
 
 from mir import DATA_DIR
-from mir.file_map.file_list import FileList
+from mir.fs_collections.file_list import FileList
 from mir.test.file_list_test_utils import setup_teardown_files
 
 class TestFileList(unittest.TestCase):
