@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from collections.abc import Generator
-from typing import Optional
+from typing import Any, Optional
 from mir.ir.document_contents import DocumentContents
 from mir.ir.document_info import DocumentInfo
 from mir.ir.index import Index
@@ -8,6 +8,7 @@ from mir.ir.posting import Posting
 from mir.ir.term import Term
 from mir.ir.token_ir import Token, TokenLocation
 from mir.ir.tokenizer import Tokenizer
+from mir.utils.sized_generator import SizedGenerator
 
 
 class CoreIndex(Index):
@@ -18,6 +19,7 @@ class CoreIndex(Index):
         self.document_contents: list[DocumentContents] = []
         self.terms: list[Term] = []
         self.term_lookup: dict[str, int] = {}
+        self.global_info: dict[str, Any] = {}
 
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
         for doc_id, posting in self.postings[term_id].items():
@@ -34,6 +36,9 @@ class CoreIndex(Index):
 
     def get_term_id(self, term: str) -> Optional[int]:
         return self.term_lookup.get(term)
+    
+    def get_global_info(self) -> dict[str, Any]:
+        return self.global_info
 
     def __len__(self) -> int:
         return len(self.document_info)
@@ -87,3 +92,26 @@ class CoreIndex(Index):
         self._update_postings(author_term_ids, doc_id)
         self._update_postings(title_term_ids, doc_id)
         self._update_postings(body_term_ids, doc_id)
+
+    def _compute_avg_field_lengths(self) -> dict[str, float]:
+        avg_author_length, avg_title_length, avg_body_length = 0, 0, 0
+        for doc in self.document_info:
+            avg_author_length += doc.lengths[0]
+            avg_title_length += doc.lengths[1]
+            avg_body_length += doc.lengths[2]
+        avg_author_length /= len(self.document_info)
+        avg_title_length /= len(self.document_info)
+        avg_body_length /= len(self.document_info)
+
+        avg_filed_lengths = {
+            "author": avg_author_length,
+            "title": avg_title_length,
+            "body": avg_body_length
+        }
+
+        return avg_filed_lengths
+
+    def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], tokenizer: Tokenizer, verbose: bool = False) -> None:
+        super().bulk_index_documents(docs, tokenizer, verbose)
+        self.global_info["avg_field_lengths"] = self._compute_avg_field_lengths()
+
