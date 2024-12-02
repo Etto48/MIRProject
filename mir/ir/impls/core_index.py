@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from collections.abc import Generator
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 from mir.ir.document_contents import DocumentContents
 from mir.ir.document_info import DocumentInfo
 from mir.ir.index import Index
@@ -14,7 +14,7 @@ from mir.utils.sized_generator import SizedGenerator
 class CoreIndex(Index):
     def __init__(self):
         super().__init__()
-        self.postings: list[OrderedDict[Posting]] = []
+        self.postings: list[OrderedDict[int,Posting]] = []
         self.document_info: list[DocumentInfo] = []
         self.document_contents: list[DocumentContents] = []
         self.terms: list[Term] = []
@@ -56,14 +56,20 @@ class CoreIndex(Index):
         
         return term_ids
     
-    def _update_postings(self, term_ids: list[int], doc_id: int) -> None:
-        for term_id in term_ids:
+    def _update_postings(self, term_ids: list[int], term_list: list[Token],doc_id: int, field: str) -> None:
+        for term_id, token in zip(term_ids, term_list):
             if term_id >= len(self.postings):
                 self.postings.append(OrderedDict())
-            self.postings[term_id][doc_id] = Posting(doc_id, term_id)
+            # Se la posting per il documento non esiste, creala
+            if doc_id not in self.postings[term_id]:
+                self.postings[term_id][doc_id] = Posting(doc_id, term_id)
+            posting = self.postings[term_id][doc_id]
+            posting.occurrences[field].append(token.position)
 
-    def _group_terms(self, terms: list[Token]) -> None:
-        author_terms, title_terms, body_terms = [], [], []
+    def _group_terms(self, terms: list[Token]) -> Tuple[list[Token], list[Token], list[Token]]:
+        author_terms:list[Token] = []
+        title_terms : list[Token] = []
+        body_terms : list[Token] = []
         for term in terms:
             match term.where:
                 case TokenLocation.AUTHOR:
