@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from collections.abc import Generator
+import math
 from typing import Any, Optional, Tuple
 from mir.ir.document_contents import DocumentContents
 from mir.ir.document_info import DocumentInfo
@@ -121,5 +122,6 @@ class CoreIndex(Index):
         print("Bulk indexing documents")
         super().bulk_index_documents(docs, tokenizer, verbose)
         self.global_info["avg_field_lengths"] = self._compute_avg_field_lengths()
+        N = len(self.document_contents)
         for term_id, postings in enumerate(self.postings):
-            self.terms[term_id].info['idf'] = 1/len(postings)
+            self.terms[term_id].info['idf'] = (N/len(postings))
