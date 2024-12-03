@@ -6,57 +6,47 @@ import math
 
 
 class BM25FScoringFunction:
-    def __init__(self, k1: float = 1.5, b: float = 0.75, field_weights: Dict[str, float] = None, index = None):
-        """
-        BM25F scoring function initialization.
-
-        # Parameters
-        - k1 (float): Term frequency saturation parameter.
-        - b (float): Length normalization parameter.
-        - field_weights (Dict[str, float]): Dictionary specifying weights for different fields.
-        """
+    def __init__(self, k1: float = 1.5, b: float = 0.75, field_weights: Dict[str, float] = None, index=None):
         self.k1 = k1
         self.b = b
         self.index = index
-        # Set default field weights if none are provided
-        self.field_weights = field_weights or {'title': 2.0, 'body': 1.0,'author': 0.5}
+        self.field_weights = field_weights or {'title': 2.0, 'body': 1.0, 'author': 0.5}
+        self.postings_dict = {}
 
-    def __call__(self, document: DocumentInfo, postings: List[Posting], query: List[Term], **kwargs) -> float:
-        """
-        Calculate the BM25F score for a document with multiple fields.
+    def _build_postings_dict(self, postings: List[Posting]):
+        for posting in postings:
+            if posting.term_id not in self.postings_dict:
+                self.postings_dict[posting.term_id] = []
+            self.postings_dict[posting.term_id].append(posting)
 
-        # Parameters
-        - document (DocumentInfo): The document to score.
-        - postings (List[Posting]): List of postings containing term frequencies for each field.
-        - query (List[Term]): The query terms.
-
-        # Returns
-        - float: The BM25F score of the document.
-        """
-        score = 0.0 #RSV
-
-
+    def __call__(self, document: DocumentInfo, postings: List[Posting], query: List[Term]) -> float:
+        self._build_postings_dict(postings)
+        score = 0.0
         for term in query:
-           score += self._rsv(term,document,postings)
+            if term.id in self.postings_dict:
+                score += self._rsv(term, document)
+        return round(score, 4)  # Round to 4 decimals for reproducibility
 
-        return score
+    def _rsv(self, term: Term, document: DocumentInfo) -> float:
+        tfd = self._wtf(term, document)
+        
+        if tfd > 0:
+            return (tfd / (self.k1 + tfd)) * math.log(term.info['idf'])
+        return 0.0
 
-    def _rsv(self,term,document,postings):
-        tfd = self._wtf(term,document,postings)
-        score = (tfd/(self.k1+tfd))*math.log(term.idf)
-        return score
+    def _wtf(self, term: Term, document: DocumentInfo) -> float:
+        tfd = 0.0
+        field_indices = {"author": 0, "title": 1, "body": 2}
 
+        if term.id not in self.postings_dict:
+            return 0.0
 
-    def _wtf(self,term,document,postings):
-        tfd = 0
-        for field, weight in self.field_weights.items():
-            avg_dlf = self.index.get_global_info()['avg_field_lengths'][field]
-            bb = 1-self.b+self.b*document.get_field_length(field)/avg_dlf
-            # questo e sbagliato perche non e piena la lista di posting, ma e sparsa.
-            # quindi costruisci un dizionario {term.id: Posting for term in query}
-            # la costruzione del dizionario deve essere fatta nel costruttore.
-            # poi questa funzione dovrebbe essere corretta.
-            tf = len(postings[term.id].occurrences[field])
-            tfd += weight*tf/bb
+        for posting in self.postings_dict[term.id]:
+            if posting.doc_id == document.id:
+                for field, weight in self.field_weights.items():
+                    field_index = field_indices[field]
+                    avg_dlf = self.index.get_global_info()['avg_field_lengths'][field]
+                    bb = 1 - self.b + self.b * document.lengths[field_index] / avg_dlf
+                    tf = len(posting.occurrences.get(field, []))
+                    tfd += weight * tf / bb
         return tfd
-    

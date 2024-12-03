@@ -1,48 +1,56 @@
-import math
+import unittest
+from unittest.mock import MagicMock
 from typing import List, Dict
 from mir.ir.document_info import DocumentInfo
 from mir.ir.impls.bm25f_scoring import BM25FScoringFunction
 from mir.ir.posting import Posting
 from mir.ir.term import Term
+import math
 
 
-# Mock Index class to provide global info (e.g., average field lengths)
-class MockIndex:
-    def get_global_info(self):
-        # Return mock data for average field lengths
-        return {
-            'avg_field_lengths': {
-                'title': 5.0,  # average length of the title field
-                'body': 100.0,  #g average length of the body field
-                'author': 2.0  # average length of the author field
-            }
+class TestBM25FScoringFunction(unittest.TestCase):
+    def setUp(self):
+        # Mock data
+        self.document = DocumentInfo(id=1, lengths=[100, 200, 300])  # Example document with field lengths
+        self.postings = [
+            Posting(term_id=1, doc_id=1, occurrences={"title": [1, 2], "body": [5]}),
+            Posting(term_id=2, doc_id=1, occurrences={"body": [3, 4]})
+        ]
+        self.query = [Term(term="term1", id=1, idf=2.0), Term(term="term2", id=2, idf=1.5)]
+        
+        # Mock index
+        self.index_mock = MagicMock()
+        self.index_mock.get_global_info.return_value = {
+            "avg_field_lengths": {"title": 150, "body": 250, "author": 50}
         }
+        
+        # Initialize BM25F
+        self.bm25f = BM25FScoringFunction(
+            k1=1.2,
+            b=0.8,
+            field_weights={'title': 1.5, 'body': 1.0},
+            index=self.index_mock
+        )
+
+    def test_bm25f_score(self):
+        # Run BM25F scoring
+        score = self.bm25f(self.document, self.postings, self.query)
+        
+        # Print intermediate values (optional, for debug)
+        print(f"Final BM25F Score: {score}")
+        
+        # Expected result (replace with the actual expected value after computation)
+        expected_score = 0.7445  # Replace with the correct score
+        self.assertAlmostEqual(score, expected_score, places=4)
+
+    def test_postings_dict_building(self):
+        # Test if postings dictionary is built correctly
+        self.bm25f._build_postings_dict(self.postings)
+        self.assertIn(1, self.bm25f.postings_dict)
+        self.assertIn(2, self.bm25f.postings_dict)
+        self.assertEqual(len(self.bm25f.postings_dict[1]), 1)
+        self.assertEqual(len(self.bm25f.postings_dict[2]), 1)
 
 
-# Define a mock DocumentInfo for the document we're scoring
-doc_info = DocumentInfo(id=1, lengths=[2, 3, 100])
-
-# Define mock terms
-term1 = Term(term="example", id=0, field="title", frequency=2)
-term2 = Term(term="document", id=1)
-
-# Create mock postings (simplified for the test)
-postings = [
-    Posting(doc_id=1, term_id=0),  # term1 'example' in document 1
-    Posting(doc_id=1, term_id=1)   # term2 'document' in document 1
-]
-
-# Add occurrences for the mock postings (simplified)
-postings[0].occurrences["title"].append(1)  # term1 occurs in the title
-postings[1].occurrences["body"].append(10)   # term2 occurs in the body
-
-# Create a BM25F scoring function
-bm25f = BM25FScoringFunction(k1=1.5, b=0.75, field_weights={'title': 2.0, 'body': 1.0, 'author': 0.5}, index=MockIndex())
-
-# Define a query with terms (example query: ["example", "document"])
-query = [term1, term2]
-
-# Calculate the BM25F score for the document
-score = bm25f(doc_info, postings, query)
-
-print(f"BM25F score: {score}")
+if __name__ == "__main__":
+    unittest.main()
