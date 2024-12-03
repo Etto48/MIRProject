@@ -12,7 +12,7 @@ from mir.utils.sized_generator import SizedGenerator
 
 
 class CoreIndex(Index):
-    def __init__(self):
+    def __init__(self) :
         super().__init__()
         self.postings: list[OrderedDict[int,Posting]] = []
         self.document_info: list[DocumentInfo] = []
@@ -56,7 +56,7 @@ class CoreIndex(Index):
         
         return term_ids
     
-    def _update_postings(self, term_ids: list[int], term_list: list[Token],doc_id: int, field: str) -> None:
+    def _update_postings(self, term_ids: list[int], term_list: list[Token], doc_id: int, field: str) -> None:
         for term_id, token in zip(term_ids, term_list):
             if term_id >= len(self.postings):
                 self.postings.append(OrderedDict())
@@ -95,9 +95,9 @@ class CoreIndex(Index):
         self.document_info.append(DocumentInfo.from_document_contents(doc_id, doc, tokenizer))
         self.document_contents.append(doc)
 
-        self._update_postings(author_term_ids, doc_id)
-        self._update_postings(title_term_ids, doc_id)
-        self._update_postings(body_term_ids, doc_id)
+        self._update_postings(author_term_ids, author_terms, doc_id, 'author')
+        self._update_postings(title_term_ids, title_terms, doc_id, 'title')
+        self._update_postings(body_term_ids, body_terms, doc_id, 'body')
 
     def _compute_avg_field_lengths(self) -> dict[str, float]:
         avg_author_length, avg_title_length, avg_body_length = 0, 0, 0
@@ -118,6 +118,8 @@ class CoreIndex(Index):
         return avg_filed_lengths
 
     def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], tokenizer: Tokenizer, verbose: bool = False) -> None:
+        print("Bulk indexing documents")
         super().bulk_index_documents(docs, tokenizer, verbose)
         self.global_info["avg_field_lengths"] = self._compute_avg_field_lengths()
-
+        for term_id, postings in enumerate(self.postings):
+            self.terms[term_id].info['idf'] = 1/len(postings)

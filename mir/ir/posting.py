@@ -7,3 +7,6 @@ class Posting:
             "title": [],
             "body": []
         }
+
+    def __repr__(self) -> str:
+        return f"Posting(doc_id={self.doc_id}, term_id={self.term_id}, occurrences={self.occurrences})"
