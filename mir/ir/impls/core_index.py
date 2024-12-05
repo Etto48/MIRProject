@@ -15,6 +15,7 @@ from mir.utils.sized_generator import SizedGenerator
 class CoreIndex(Index):
     def __init__(self) :
         super().__init__()
+        # index : term_id -> {doc_id : Posting}
         self.postings: list[OrderedDict[int,Posting]] = []
         self.document_info: list[DocumentInfo] = []
         self.document_contents: list[DocumentContents] = []
@@ -23,7 +24,7 @@ class CoreIndex(Index):
         self.global_info: dict[str, Any] = {}
 
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
-        for doc_id, posting in self.postings[term_id].items():
+        for _, posting in self.postings[term_id].items():
             yield posting
 
     def get_document_info(self, doc_id: int) -> DocumentInfo:
