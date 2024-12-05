@@ -1,6 +1,7 @@
 from mir.ir.document_contents import DocumentContents
 from mir.ir.token_ir import TokenLocation
 from mir.ir.tokenizer import Tokenizer
+import struct
 
 
 class DocumentInfo:
@@ -25,7 +26,14 @@ class DocumentInfo:
                     raise ValueError(f"Invalid token location {token.where}")
             tokens_for_field[field_offset] += 1
         return DocumentInfo(id, tokens_for_field)
-                    
+
+    def __ser__(self) -> bytes:
+        return struct.pack('i3i', self.id, *self.lengths)
+
+    @staticmethod
+    def __deser__(data: bytes, id:int) -> "DocumentInfo":
+        _, author, title, body = struct.unpack('i3i', data)
+        return DocumentInfo(id, [author, title, body])            
 
     
     

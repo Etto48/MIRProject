@@ -16,12 +16,12 @@ class CoreIndex(Index):
     def __init__(self) :
         super().__init__()
         # index : term_id -> {doc_id : Posting}
-        self.postings: list[OrderedDict[int,Posting]] = []
-        self.document_info: list[DocumentInfo] = []
-        self.document_contents: list[DocumentContents] = []
-        self.terms: list[Term] = []
-        self.term_lookup: dict[str, int] = {}
-        self.global_info: dict[str, Any] = {}
+        self.postings: list[OrderedDict[int,Posting]] = [] # serializzazione difficile [x]
+        self.document_info: list[DocumentInfo] = [] # serializzazione semplice [o]
+        self.document_contents: list[DocumentContents] = [] # serializzazione ??????
+        self.terms: list[Term] = [] # serializzazione ???????
+        self.term_lookup: dict[str, int] = {} # serializzazione semplice
+        self.global_info: dict[str, Any] = {} # serializzazione json
 
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
         for _, posting in self.postings[term_id].items():
