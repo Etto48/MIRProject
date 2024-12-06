@@ -1,3 +1,4 @@
+from mir.fs_collections.serde import Serde
 from mir.ir.document_contents import DocumentContents
 from mir.ir.token_ir import TokenLocation
 from mir.ir.tokenizer import Tokenizer
@@ -35,5 +36,8 @@ class DocumentInfo:
         _, author, title, body = struct.unpack('i3i', data)
         return DocumentInfo(id, [author, title, body])            
 
-    
+SERDE_DOCUMENT_INFO = Serde[DocumentInfo](
+    serialize=lambda doc_info: doc_info.__ser__(),
+    deserialize=lambda data, key: DocumentInfo.__deser__(data, key)
+)
     

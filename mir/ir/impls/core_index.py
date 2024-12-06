@@ -6,6 +6,7 @@ from mir.ir.document_contents import DocumentContents
 from mir.ir.document_info import DocumentInfo
 from mir.ir.index import Index
 from mir.ir.posting import Posting
+from mir.ir.serializable.posting_list import PostingList
 from mir.ir.term import Term
 from mir.ir.token_ir import Token, TokenLocation
 from mir.ir.tokenizer import Tokenizer
@@ -16,10 +17,10 @@ class CoreIndex(Index):
     def __init__(self) :
         super().__init__()
         # index : term_id -> {doc_id : Posting}
-        self.postings: list[OrderedDict[int,Posting]] = [] # serializzazione difficile [x]
-        self.document_info: list[DocumentInfo] = [] # serializzazione semplice [o]
+        self.postings: list[PostingList] = [] # serializzazione difficile [x]
+        self.document_info: list[DocumentInfo] = [] # serializzazione semplice [x]
         self.document_contents: list[DocumentContents] = [] # serializzazione ??????
-        self.terms: list[Term] = [] # serializzazione ???????
+        self.terms: list[Term] = [] # serializzazione facile [x]
         self.term_lookup: dict[str, int] = {} # serializzazione semplice
         self.global_info: dict[str, Any] = {} # serializzazione json
 
