@@ -1,28 +1,60 @@
 from collections import OrderedDict
 from collections.abc import Generator
 import math
+import os
 from typing import Any, Optional, Tuple
-from mir.ir.document_contents import DocumentContents
-from mir.ir.document_info import DocumentInfo
+from mir.fs_collections.cached_hmap import CachedHMap
+from mir.fs_collections.cached_list import CachedList
+from mir.fs_collections.file_hmap import FileHMap
+from mir.fs_collections.file_list import FileList
+from mir.fs_collections.serde import INT_SERDE
+from mir.ir.document_contents import DOCUMENT_CONTENTS_SERDE, DocumentContents
+from mir.ir.document_info import DOCUMENT_INFO_SERDE, DocumentInfo
+from mir.ir.serializable.posting_list import POSTING_LIST_SERDE, PostingList
 from mir.ir.index import Index
 from mir.ir.posting import Posting
-from mir.ir.serializable.posting_list import PostingList
-from mir.ir.term import Term
+from mir.ir.term import TERM_SERDE, Term
 from mir.ir.token_ir import Token, TokenLocation
 from mir.ir.tokenizer import Tokenizer
 from mir.utils.sized_generator import SizedGenerator
 
+from mir import DATA_DIR
 
 class CoreIndex(Index):
-    def __init__(self) :
+    def __init__(self, folder: str = None):
         super().__init__()
-        # index : term_id -> {doc_id : Posting}
-        self.postings: list[PostingList] = [] # serializzazione difficile [x]
-        self.document_info: list[DocumentInfo] = [] # serializzazione semplice [x]
-        self.document_contents: list[DocumentContents] = [] # serializzazione ??????
-        self.terms: list[Term] = [] # serializzazione facile [x]
-        self.term_lookup: dict[str, int] = {} # serializzazione semplice
+
+        basedir = folder if folder is not None else DATA_DIR
+
+        postings_file = FileList(os.path.join(basedir,"postings.index"), os.path.join(basedir,"postings.data"))
+        self.postings = CachedList(postings_file, 4, POSTING_LIST_SERDE)
+
+        document_info_file = FileList(os.path.join(basedir,"document_info.index"), os.path.join(basedir,"document_info.data"))
+        self.document_info = CachedList(document_info_file, 4, DOCUMENT_INFO_SERDE)
+
+        document_contents_file = FileList(os.path.join(basedir,"document_contents.index"), os.path.join(basedir,"document_contents.data"))
+        self.document_contents = CachedList(document_contents_file, 4, DOCUMENT_CONTENTS_SERDE)
+
+        terms_file = FileList(os.path.join(basedir,"terms.index"), os.path.join(basedir,"terms.data"))
+        self.terms = CachedList(terms_file, 4, TERM_SERDE)
+        
+        term_lookup_file = FileHMap(os.path.join(basedir,"term_lookup.index"), os.path.join(basedir,"term_lookup.data"))
+        self.term_lookup = CachedHMap(term_lookup_file, 4, INT_SERDE)
+        
+        # DEVO GESTIRE LA SERIALIZZAZIONE DI QUESTO DIZIONARIO
+        # la stringa non è hashabile di default
+        # quindi la serializzazione crasha
+        # devo implementare una hasdable key
+
         self.global_info: dict[str, Any] = {} # serializzazione json
+
+        self.global_info["avg_field_lengths"] = {
+            "author": 0,
+            "title": 0,
+            "body": 0
+        }
+        self.global_info["num_docs"] = 0
+
 
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
         for _, posting in self.postings[term_id].items():
@@ -38,7 +70,7 @@ class CoreIndex(Index):
         return self.terms[term_id]
 
     def get_term_id(self, term: str) -> Optional[int]:
-        return self.term_lookup.get(term)
+        return self.term_lookup[term]
     
     def get_global_info(self) -> dict[str, Any]:
         return self.global_info
@@ -49,23 +81,26 @@ class CoreIndex(Index):
     def _map_terms_to_ids(self, terms: list[Token]) -> list[int]:
         term_ids = []
         for term in terms:
-            if term.token not in self.term_lookup:
-                term_id = len(self.terms)
-                self.terms.append(Term(term.token, term_id))
-                self.term_lookup[term.token] = term_id
-            else:
-                term_id = self.term_lookup[term.token]
+            match self.term_lookup[term.token]:
+                case None:
+                    term_id = self.terms.next_key()
+                    self.terms.append(Term(term.token, term_id))
+                    self.term_lookup[term.token] = term_id
+                    self.global_info["posting_lengths"][term_id] = 0
+                case already_mapped:
+                    term_id = already_mapped
             term_ids.append(term_id)
         
         return term_ids
     
     def _update_postings(self, term_ids: list[int], term_list: list[Token], doc_id: int, field: str) -> None:
         for term_id, token in zip(term_ids, term_list):
-            if term_id >= len(self.postings):
-                self.postings.append(OrderedDict())
+            if term_id >= self.postings.next_key():
+                self.postings.append(PostingList())
             # Se la posting per il documento non esiste, creala
             if doc_id not in self.postings[term_id]:
                 self.postings[term_id][doc_id] = Posting(doc_id, term_id)
+                self.global_info["posting_lengths"][term_id] += 1
             posting = self.postings[term_id][doc_id]
             posting.occurrences[field].append(token.position)
 
@@ -88,29 +123,48 @@ class CoreIndex(Index):
     def index_document(self, doc: DocumentContents, tokenizer: Tokenizer) -> None:
         terms = tokenizer.tokenize_document(doc)
 
+        self.global_info["num_docs"] += 1
+
         author_terms, title_terms, body_terms = self._group_terms(terms)
 
         author_term_ids = self._map_terms_to_ids(author_terms)
         title_term_ids = self._map_terms_to_ids(title_terms)
         body_term_ids = self._map_terms_to_ids(body_terms)
         
-        doc_id = len(self.document_info)
-        self.document_info.append(DocumentInfo.from_document_contents(doc_id, doc, tokenizer))
+        doc_id = self.document_info.next_key()
+        doc_info = DocumentInfo.from_document_contents(doc_id, doc, tokenizer)
+        self.document_info.append(doc_info)
         self.document_contents.append(doc)
+
+        self._sum_up_lengths(doc_info.lengths)
 
         self._update_postings(author_term_ids, author_terms, doc_id, 'author')
         self._update_postings(title_term_ids, title_terms, doc_id, 'title')
         self._update_postings(body_term_ids, body_terms, doc_id, 'body')
 
+
+    def _sum_up_lengths(self, lengths: list[int]) -> None:
+        avg_author_length = self.global_info["avg_field_lengths"]["author"]
+        avg_title_length = self.global_info["avg_field_lengths"]["title"]
+        avg_body_length = self.global_info["avg_field_lengths"]["body"]
+
+        avg_author_length += lengths[0]
+        avg_title_length += lengths[1]
+        avg_body_length += lengths[2]
+
+        self.global_info["avg_field_lengths"]["author"] = avg_author_length
+        self.global_info["avg_field_lengths"]["title"] = avg_title_length
+        self.global_info["avg_field_lengths"]["body"] = avg_body_length
+
+
     def _compute_avg_field_lengths(self) -> dict[str, float]:
-        avg_author_length, avg_title_length, avg_body_length = 0, 0, 0
-        for doc in self.document_info:
-            avg_author_length += doc.lengths[0]
-            avg_title_length += doc.lengths[1]
-            avg_body_length += doc.lengths[2]
-        avg_author_length /= len(self.document_info)
-        avg_title_length /= len(self.document_info)
-        avg_body_length /= len(self.document_info)
+        avg_author_length = self.global_info["avg_field_lengths"]["author"]
+        avg_title_length = self.global_info["avg_field_lengths"]["title"]
+        avg_body_length = self.global_info["avg_field_lengths"]["body"]
+        
+        avg_author_length /= self.global_info["num_docs"]
+        avg_title_length /= self.global_info["num_docs"]
+        avg_body_length /= self.global_info["num_docs"]
 
         avg_filed_lengths = {
             "author": avg_author_length,
@@ -121,9 +175,18 @@ class CoreIndex(Index):
         return avg_filed_lengths
 
     def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], tokenizer: Tokenizer, verbose: bool = False) -> None:
-        print("Bulk indexing documents")
         super().bulk_index_documents(docs, tokenizer, verbose)
         self.global_info["avg_field_lengths"] = self._compute_avg_field_lengths()
-        N = len(self.document_contents)
-        for term_id, postings in enumerate(self.postings):
-            self.terms[term_id].info['idf'] = (N/len(postings))
+        N = self.global_info["num_docs"]
+
+        # DA OTTIMIZZARE
+        for term_id in range(self.terms.next_key()):
+            self.terms[term_id].info['idf'] = (N/self.global_info["posting_lengths"][term_id])
+
+
+
+    def save(self) -> None:
+        ...
+
+    def load(self) -> None:
+        ...

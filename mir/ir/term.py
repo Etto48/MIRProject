@@ -13,7 +13,7 @@ class Term:
         # [len, string, id, idf]
         term_bytes = self.term.encode('utf-8')
         term_len = len(term_bytes)
-        idf = self.info['idf']
+        idf = self.info.get('idf', 0)
         pack = struct.pack(f'!i{term_len}si', term_len, term_bytes, idf)
         return pack
     

@@ -237,6 +237,18 @@ class FileHMap:
         - key (HashableKey): The key.
         """
         self[key] = None
+
+    def __contains__(self, key: HashableKey) -> bool:
+        """
+        Check if a key is in the FileHMap.
+        
+        # Parameters
+        - key (HashableKey): The key.
+        
+        # Returns
+        - bool: True if the key is in the FileHMap.
+        """
+        return self[key] is not None
         
 if __name__ == "__main__":
     from mir import DATA_DIR

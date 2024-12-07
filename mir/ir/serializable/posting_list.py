@@ -15,8 +15,8 @@ class PostingList(OrderedDict[int, Posting]):
         # Numero di posting
         doc_list = [docid for docid in self.keys()]
         # COMPRESSIONE
-        packed_data = struct.pack("I", len(doc_list))
-        packed_data += struct.pack(f"{len(doc_list)}I", *doc_list)
+        packed_data = struct.pack("i", len(doc_list))
+        packed_data += struct.pack(f"{len(doc_list)}i", *doc_list)
 
         for posting in self.values():
             packed_data += posting.__ser__()
@@ -31,9 +31,9 @@ class PostingList(OrderedDict[int, Posting]):
         """
         posting_list = PostingList()
         # Numero di posting
-        num_posting = struct.unpack("I", data[:4])[0]
+        num_posting = struct.unpack("i", data[:4])[0]
         data = data[4:]
-        doc_list = struct.unpack(f"{num_posting}I", data[:4*num_posting])
+        doc_list = struct.unpack(f"{num_posting}i", data[:4*num_posting])
         data = data[4*num_posting:]
 
         # DECOMPRIMI doc_list

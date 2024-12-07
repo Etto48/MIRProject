@@ -108,3 +108,15 @@ class CachedHMap(Generic[T]):
         except KeyError:
             pass
         del self.inner[key]
+
+    def __contains__(self, key: HashableKey) -> bool:
+        """
+        Check if a key is in the cache or the inner FileHMap.
+
+        # Parameters
+        - key (HashableKey): The key to check.
+
+        # Returns
+        - bool: True if the key is present, False otherwise.
+        """
+        return key in self.cache or key in self.inner

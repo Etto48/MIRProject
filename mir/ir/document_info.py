@@ -29,14 +29,18 @@ class DocumentInfo:
         return DocumentInfo(id, tokens_for_field)
 
     def __ser__(self) -> bytes:
-        return struct.pack('i3i', self.id, *self.lengths)
+        author = self.lengths[0]
+        title = self.lengths[1]
+        body = self.lengths[2]
+        return struct.pack('3i', author, title, body)
 
     @staticmethod
     def __deser__(data: bytes, id:int) -> "DocumentInfo":
-        _, author, title, body = struct.unpack('i3i', data)
+        print(data, len(data))
+        author, title, body = struct.unpack('3i', data[:12])
         return DocumentInfo(id, [author, title, body])            
 
-SERDE_DOCUMENT_INFO = Serde[DocumentInfo](
+DOCUMENT_INFO_SERDE = Serde[DocumentInfo](
     serialize=lambda doc_info: doc_info.__ser__(),
     deserialize=lambda data, key: DocumentInfo.__deser__(data, key)
 )
