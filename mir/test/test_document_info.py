@@ -1,5 +1,5 @@
 import unittest
-from mir.ir.document_info import SERDE_DOCUMENT_INFO, DocumentInfo
+from mir.ir.document_info import DOCUMENT_INFO_SERDE, DocumentInfo
 
 class TestDocumentInfo(unittest.TestCase):
     def test_document_info_initialization(self):
@@ -20,8 +20,8 @@ class TestDocumentInfo(unittest.TestCase):
 
     def test_serde(self):
         doc_info = DocumentInfo(1, [2, 3, 5])
-        serialized = SERDE_DOCUMENT_INFO.serialize(doc_info)
-        deserialized = SERDE_DOCUMENT_INFO.deserialize(serialized, doc_info.id)
+        serialized = DOCUMENT_INFO_SERDE.serialize(doc_info)
+        deserialized = DOCUMENT_INFO_SERDE.deserialize(serialized, doc_info.id)
         self.assertEqual(deserialized.id, doc_info.id)
         self.assertEqual(deserialized.lengths, doc_info.lengths)
 
