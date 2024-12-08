@@ -74,7 +74,7 @@ class CoreIndex(Index):
         return self.global_info
 
     def __len__(self) -> int:
-        return len(self.document_info)
+        return self.global_info["num_docs"]
     
     def _map_terms_to_ids(self, terms: list[Token]) -> list[int]:
         term_ids = []
@@ -192,7 +192,7 @@ class CoreIndex(Index):
         self.document_contents.write()
         self.terms.write()
         self.term_lookup.write()
-        
+
 
     @staticmethod
     def load(folder: str = None) -> 'CoreIndex':
