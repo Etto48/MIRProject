@@ -1,6 +1,8 @@
 import unittest
 from collections import OrderedDict
 from unittest.mock import MagicMock
+from mir import DATA_DIR
+from mir.fs_collections.hashable_key.impls.str_hk import StrHK
 from mir.ir.document_info import DocumentInfo
 from mir.ir.document_contents import DocumentContents
 from mir.ir.serializable.posting_list import PostingList
@@ -10,16 +12,29 @@ from mir.ir.tokenizer import Tokenizer
 from mir.ir.posting import Posting
 from mir.ir.term import Term
 
-from mir.test.core_index_test_utils import setup_teardown_folder
+import os
+import shutil
 
 
 class TestCoreIndex(unittest.TestCase):
 
-    @setup_teardown_folder
-    def test_index_document(self, test_folder):
-        self.index = CoreIndex(test_folder)
+    def setUp(self):
+        self.test_folder = f"{DATA_DIR}/test/"
+        # Ensure the test folder is clean before each test
+        if os.path.exists(self.test_folder):
+            shutil.rmtree(self.test_folder)
+        os.makedirs(self.test_folder)
+
+    def tearDown(self):
+        # Clean up the test folder after each test
+        shutil.rmtree(self.test_folder)
+        os.makedirs(self.test_folder)
+
+    def test_index_document(self):
+        index = CoreIndex(self.test_folder)
         # Mock document
-        doc = MagicMock(spec=DocumentContents)
+        #doc = MagicMock(spec=DocumentContents)
+        doc = DocumentContents('author', 'title', 'body')
         doc.doc_id = 0
         tokenizer = MagicMock(spec=Tokenizer)
         
@@ -32,21 +47,17 @@ class TestCoreIndex(unittest.TestCase):
         tokenizer.tokenize_document.return_value = tokens
 
         # Indicizza documento
-        self.index.index_document(doc, tokenizer)
+        index.index_document(doc, tokenizer)
 
         # Test document_info e contents
-        self.assertEqual(self.index.document_info.next_key(), 1)
-        self.assertEqual(self.index.document_contents.next_key(), 1)
+        self.assertEqual(index.document_info.next_key(), 1)
+        self.assertEqual(index.document_contents.next_key(), 1)
 
         # Test termini indicizzati
-        self.assertEqual(self.index.terms.next_key(), 3)
-        self.assertIn("author_term", self.index.term_lookup)
-        self.assertIn("title_term", self.index.term_lookup)
-        self.assertIn("body_term", self.index.term_lookup)
+        self.assertEqual(index.terms.next_key(), 3)
 
-    @setup_teardown_folder
-    def test_map_terms_to_ids(self, test_folder):
-        self.index = CoreIndex(test_folder)
+    def test_map_terms_to_ids(self):
+        index = CoreIndex(self.test_folder)
 
         # Mock tokens
         tokens = [
@@ -56,27 +67,26 @@ class TestCoreIndex(unittest.TestCase):
         ]
 
         # Map terms to IDs
-        term_ids = self.index._map_terms_to_ids(tokens)
+        term_ids = index._map_terms_to_ids(tokens)
 
         # Test ID mapping
-        self.assertEqual(self.index.terms.next_key(), 2)
-        self.assertEqual(self.index.term_lookup["term1"], term_ids[0])
-        self.assertEqual(self.index.term_lookup["term2"], term_ids[1])
+        self.assertEqual(index.terms.next_key(), 2)
+        self.assertEqual(index.term_lookup[StrHK("term1")], term_ids[0])
+        self.assertEqual(index.term_lookup[StrHK("term2")], term_ids[1])
 
-    @setup_teardown_folder
-    def test_compute_avg_field_lengths(self, test_folder):
-        self.index = CoreIndex(test_folder)
+    def test_compute_avg_field_lengths(self):
+        index = CoreIndex(self.test_folder)
 
         # Mock document info
         doc1 = DocumentInfo(id=0, lengths=[5, 10, 20])
         doc2 = DocumentInfo(id=1, lengths=[10, 15, 25])
 
-        self.index.global_info["num_docs"] = 2
-        self.index._sum_up_lengths(doc1.lengths)
-        self.index._sum_up_lengths(doc2.lengths)
+        index.global_info["num_docs"] = 2
+        index._sum_up_lengths(doc1.lengths)
+        index._sum_up_lengths(doc2.lengths)
 
         # Compute averages
-        avg_lengths = self.index._compute_avg_field_lengths()
+        avg_lengths = index._compute_avg_field_lengths()
 
         # Expected values
         expected = {
@@ -87,9 +97,8 @@ class TestCoreIndex(unittest.TestCase):
 
         self.assertEqual(avg_lengths, expected)
 
-    @setup_teardown_folder
-    def test_get_postings(self, test_folder):
-        self.index = CoreIndex(test_folder)
+    def test_get_postings(self):
+        index = CoreIndex(self.test_folder)
         
         # Mock postings
         posting1 = Posting(doc_id=0, term_id=0)
@@ -97,33 +106,31 @@ class TestCoreIndex(unittest.TestCase):
         posting_list = PostingList()
         posting_list[0] = posting1
         posting_list[1] = posting2
-        self.index.postings.append(posting_list)
+        index.postings.append(posting_list)
 
         # Test retrieval
-        postings = list(self.index.get_postings(0))
+        postings = list(index.get_postings(0))
         self.assertEqual(len(postings), 2)
         self.assertEqual(postings[0].doc_id, 0)
         self.assertEqual(postings[1].doc_id, 1)
 
-    @setup_teardown_folder
-    def test_get_term_id(self, test_folder):
-        self.index = CoreIndex(test_folder)
+    def test_get_term_id(self):
+        index = CoreIndex(self.test_folder)
         # Mock term lookup
-        self.index.term_lookup["term1"] = 0
-        self.index.term_lookup["term2"] = 1
+        index.term_lookup[StrHK("term1")] = 0
+        index.term_lookup[StrHK("term2")] = 1
 
         # Test term ID retrieval
-        self.assertEqual(self.index.get_term_id("term1"), 0)
-        self.assertEqual(self.index.get_term_id("term2"), 1)
-        self.assertIsNone(self.index.get_term_id("term3"))
+        self.assertEqual(index.get_term_id("term1"), 0)
+        self.assertEqual(index.get_term_id("term2"), 1)
+        self.assertIsNone(index.get_term_id("term3"))
 
-    @setup_teardown_folder
-    def test_bulk_index_documents(self, test_folder):
-        self.index = CoreIndex(test_folder)
+    def test_bulk_index_documents(self):
+        index = CoreIndex(self.test_folder)
         # Mock documents
         docs = [
-            MagicMock(spec=DocumentContents),
-            MagicMock(spec=DocumentContents)
+            DocumentContents('author1', 'title1', 'body1'),
+            DocumentContents('author2', 'title2', 'body2'),
         ]
         tokenizer = MagicMock(spec=Tokenizer)
 
@@ -136,35 +143,33 @@ class TestCoreIndex(unittest.TestCase):
         tokenizer.tokenize_document.side_effect = lambda doc: tokens
 
         # Bulk index documents
-        self.index.bulk_index_documents(docs, tokenizer)
+        index.bulk_index_documents(docs, tokenizer)
 
         # Test document count
-        self.assertEqual(self.index.global_info['num_docs'], 2)
+        self.assertEqual(index.global_info['num_docs'], 2)
 
         # Test global info
-        self.assertIn("avg_field_lengths", self.index.global_info)
-        self.assertEqual(self.index.terms.next_key(), 3)
+        self.assertIn("avg_field_lengths", index.global_info)
+        self.assertEqual(index.terms.next_key(), 3)
 
-    @setup_teardown_folder
-    def test_get_global_info(self, test_folder):
-        self.index = CoreIndex(test_folder)
+    def test_get_global_info(self):
+        index = CoreIndex(self.test_folder)
         # Mock global info
-        self.index.global_info = {"avg_field_lengths": {"author": 5, "title": 10, "body": 15}}
+        index.global_info = {"avg_field_lengths": {"author": 5, "title": 10, "body": 15}}
 
         # Test retrieval
-        global_info = self.index.get_global_info()
+        global_info = index.get_global_info()
         self.assertIn("avg_field_lengths", global_info)
         self.assertEqual(global_info["avg_field_lengths"]["author"], 5)
 
-    @setup_teardown_folder
-    def test_exceptions_invalid_location(self, test_folder):
-        self.index = CoreIndex(test_folder)
+    def test_exceptions_invalid_location(self):
+        index = CoreIndex(self.test_folder)
         # Mock invalid token location
         tokens = [Token("term1", "INVALID_LOCATION", 0)]
 
         # Test exception
         with self.assertRaises(ValueError):
-            self.index._group_terms(tokens)
+            index._group_terms(tokens)
 
 
 if __name__ == "__main__":

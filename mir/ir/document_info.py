@@ -36,7 +36,6 @@ class DocumentInfo:
 
     @staticmethod
     def __deser__(data: bytes, id:int) -> "DocumentInfo":
-        print(data, len(data))
         author, title, body = struct.unpack('3i', data[:12])
         return DocumentInfo(id, [author, title, body])            
 

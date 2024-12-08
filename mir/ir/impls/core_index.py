@@ -7,6 +7,7 @@ from mir.fs_collections.cached_hmap import CachedHMap
 from mir.fs_collections.cached_list import CachedList
 from mir.fs_collections.file_hmap import FileHMap
 from mir.fs_collections.file_list import FileList
+from mir.fs_collections.hashable_key.impls.str_hk import StrHK
 from mir.fs_collections.serde import INT_SERDE
 from mir.ir.document_contents import DOCUMENT_CONTENTS_SERDE, DocumentContents
 from mir.ir.document_info import DOCUMENT_INFO_SERDE, DocumentInfo
@@ -41,13 +42,8 @@ class CoreIndex(Index):
         term_lookup_file = FileHMap(os.path.join(basedir,"term_lookup.index"), os.path.join(basedir,"term_lookup.data"))
         self.term_lookup = CachedHMap(term_lookup_file, 4, INT_SERDE)
         
-        # DEVO GESTIRE LA SERIALIZZAZIONE DI QUESTO DIZIONARIO
-        # la stringa non è hashabile di default
-        # quindi la serializzazione crasha
-        # devo implementare una hasdable key
-
         self.global_info: dict[str, Any] = {} # serializzazione json
-
+        self.global_info["posting_lengths"] = {}
         self.global_info["avg_field_lengths"] = {
             "author": 0,
             "title": 0,
@@ -70,7 +66,7 @@ class CoreIndex(Index):
         return self.terms[term_id]
 
     def get_term_id(self, term: str) -> Optional[int]:
-        return self.term_lookup[term]
+        return self.term_lookup[StrHK(term)]
     
     def get_global_info(self) -> dict[str, Any]:
         return self.global_info
@@ -81,11 +77,11 @@ class CoreIndex(Index):
     def _map_terms_to_ids(self, terms: list[Token]) -> list[int]:
         term_ids = []
         for term in terms:
-            match self.term_lookup[term.token]:
+            match self.term_lookup[StrHK(term.token)]:
                 case None:
                     term_id = self.terms.next_key()
                     self.terms.append(Term(term.token, term_id))
-                    self.term_lookup[term.token] = term_id
+                    self.term_lookup[StrHK(term.token)] = term_id
                     self.global_info["posting_lengths"][term_id] = 0
                 case already_mapped:
                     term_id = already_mapped
