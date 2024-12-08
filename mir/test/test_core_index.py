@@ -171,6 +171,30 @@ class TestCoreIndex(unittest.TestCase):
         with self.assertRaises(ValueError):
             index._group_terms(tokens)
 
+    def test_save_load(self):
+        index = CoreIndex(self.test_folder)
+        # Mock index
+        index.global_info["avg_field_lengths"]= {"author": 5, "title": 10, "body": 15}
+        index.document_info.append(DocumentInfo(id=0, lengths=[5, 10, 15]))
+        index.document_contents.append(DocumentContents('author', 'title', 'body'))
+        index.terms.append(Term("term1", 0))
+        index.term_lookup[StrHK("term1")] = 0
+        index.postings.append(PostingList())
+
+        # Save index
+        index.save()
+
+        # Load index
+        loaded_index = CoreIndex.load(self.test_folder)
+
+        # Test loaded index
+        self.assertEqual(loaded_index.global_info, index.global_info)
+        self.assertEqual(loaded_index.document_info.next_key(), 1)
+        self.assertEqual(loaded_index.document_contents.next_key(), 1)
+        self.assertEqual(loaded_index.terms.next_key(), 1)
+        self.assertEqual(loaded_index.term_lookup[StrHK("term1")], 0)
+        self.assertEqual(loaded_index.postings.next_key(), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

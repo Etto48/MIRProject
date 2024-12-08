@@ -26,21 +26,21 @@ class CoreIndex(Index):
     def __init__(self, folder: str = None):
         super().__init__()
 
-        basedir = folder if folder is not None else DATA_DIR
+        self.basedir = folder if folder is not None else DATA_DIR
 
-        postings_file = FileList(os.path.join(basedir,"postings.index"), os.path.join(basedir,"postings.data"))
+        postings_file = FileList(os.path.join(self.basedir,"postings.index"), os.path.join(self.basedir,"postings.data"))
         self.postings = CachedList(postings_file, 4, POSTING_LIST_SERDE)
 
-        document_info_file = FileList(os.path.join(basedir,"document_info.index"), os.path.join(basedir,"document_info.data"))
+        document_info_file = FileList(os.path.join(self.basedir,"document_info.index"), os.path.join(self.basedir,"document_info.data"))
         self.document_info = CachedList(document_info_file, 4, DOCUMENT_INFO_SERDE)
 
-        document_contents_file = FileList(os.path.join(basedir,"document_contents.index"), os.path.join(basedir,"document_contents.data"))
+        document_contents_file = FileList(os.path.join(self.basedir,"document_contents.index"), os.path.join(self.basedir,"document_contents.data"))
         self.document_contents = CachedList(document_contents_file, 4, DOCUMENT_CONTENTS_SERDE)
 
-        terms_file = FileList(os.path.join(basedir,"terms.index"), os.path.join(basedir,"terms.data"))
+        terms_file = FileList(os.path.join(self.basedir,"terms.index"), os.path.join(self.basedir,"terms.data"))
         self.terms = CachedList(terms_file, 4, TERM_SERDE)
         
-        term_lookup_file = FileHMap(os.path.join(basedir,"term_lookup.index"), os.path.join(basedir,"term_lookup.data"))
+        term_lookup_file = FileHMap(os.path.join(self.basedir,"term_lookup.index"), os.path.join(self.basedir,"term_lookup.data"))
         self.term_lookup = CachedHMap(term_lookup_file, 4, INT_SERDE)
         
         self.global_info: dict[str, Any] = {} # serializzazione json
@@ -177,21 +177,27 @@ class CoreIndex(Index):
         self.global_info["avg_field_lengths"] = self._compute_avg_field_lengths()
         N = self.global_info["num_docs"]
 
-        # DA OTTIMIZZARE
         for term_id in range(self.terms.next_key()):
             self.terms[term_id].info['idf'] = (N/self.global_info["posting_lengths"][term_id])
 
 
 
     def save(self) -> None:
-        with open(os.path.join(self.postings.basedir, "global_info.json"), "w") as f:
+        with open(os.path.join(self.basedir, "global_info.json"), "w") as f:
             del self.global_info["posting_lengths"]
             json.dump(self.global_info, f)
+
+        self.postings.write()
+        self.document_info.write()
+        self.document_contents.write()
+        self.terms.write()
+        self.term_lookup.write()
+        
 
     @staticmethod
     def load(folder: str = None) -> 'CoreIndex':
         index = CoreIndex(folder)
-        global_info_path = os.path.join(index.postings.basedir, "global_info.json")
+        global_info_path = os.path.join(index.basedir, "global_info.json")
         if os.path.exists(global_info_path):
             with open(global_info_path, "r") as f:
                 index.global_info = json.load(f)
