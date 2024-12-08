@@ -20,6 +20,7 @@ from mir.ir.tokenizer import Tokenizer
 from mir.utils.sized_generator import SizedGenerator
 
 from mir import DATA_DIR
+import json
 
 class CoreIndex(Index):
     def __init__(self, folder: str = None):
@@ -43,6 +44,7 @@ class CoreIndex(Index):
         self.term_lookup = CachedHMap(term_lookup_file, 4, INT_SERDE)
         
         self.global_info: dict[str, Any] = {} # serializzazione json
+        # posting lenghts: dict[int, int] 
         self.global_info["posting_lengths"] = {}
         self.global_info["avg_field_lengths"] = {
             "author": 0,
@@ -182,7 +184,15 @@ class CoreIndex(Index):
 
 
     def save(self) -> None:
-        ...
+        with open(os.path.join(self.postings.basedir, "global_info.json"), "w") as f:
+            del self.global_info["posting_lengths"]
+            json.dump(self.global_info, f)
 
-    def load(self) -> None:
-        ...
+    @staticmethod
+    def load(folder: str = None) -> 'CoreIndex':
+        index = CoreIndex(folder)
+        global_info_path = os.path.join(index.postings.basedir, "global_info.json")
+        if os.path.exists(global_info_path):
+            with open(global_info_path, "r") as f:
+                index.global_info = json.load(f)
+        return index
