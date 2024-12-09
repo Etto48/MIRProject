@@ -1,5 +1,7 @@
 import struct
 
+from mir.utils.compression import from_dgaps, into_dgaps, ints_from_vbc, ints_to_vbc
+
 
 class Posting:
     def __init__(self, doc_id: int, term_id: int, **kwargs):
@@ -18,21 +20,23 @@ class Posting:
         """
         Serializza il Posting in formato binario ottimizzato.
         """
-        len_author = len(self.occurrences["author"])
-        len_title = len(self.occurrences["title"])
-        len_body = len(self.occurrences["body"])
+
+        comp_occ= {
+            "author": ints_to_vbc(into_dgaps(self.occurrences["author"])),
+            "title": ints_to_vbc(into_dgaps(self.occurrences["title"])),
+            "body": ints_to_vbc(into_dgaps(self.occurrences["body"]))
+        }
+
+        len_author = len(comp_occ["author"])
+        len_title = len(comp_occ["title"])
+        len_body = len(comp_occ["body"])
 
         packed_data = struct.pack("III", len_author, len_title, len_body)
 
-        # COMPRIMI LE OCCORRENZE
+        packed_data += comp_occ["author"]
+        packed_data += comp_occ["title"]
+        packed_data += comp_occ["body"]
 
-        auth_occ = self.occurrences["author"]
-        title_occ = self.occurrences["title"]
-        body_occ = self.occurrences["body"]
-
-        packed_data += struct.pack(f"{len_author}I", *auth_occ)
-        packed_data += struct.pack(f"{len_title}I", *title_occ)
-        packed_data += struct.pack(f"{len_body}I", *body_occ)
 
         return packed_data
     
@@ -48,14 +52,15 @@ class Posting:
 
         # DECOMPRIMI LE OCCORRENZE
 
-        auth_occ = struct.unpack(f"{len_author}I", data[:4*len_author])
-        data = data[4*len_author:]
-        title_occ = struct.unpack(f"{len_title}I", data[:4*len_title])
-        data = data[4*len_title:]
-        body_occ = struct.unpack(f"{len_body}I", data[:4*len_body])
+        author_occ = from_dgaps(ints_from_vbc(data[:len_author]))
+        data = data[len_author:]
+        title_occ = from_dgaps(ints_from_vbc(data[:len_title]))
+        data = data[len_title:]
+        body_occ = from_dgaps(ints_from_vbc(data[:len_body]))
 
-        posting.occurrences["author"] = list(auth_occ)
+
+        posting.occurrences["author"] = list(author_occ)
         posting.occurrences["title"] = list(title_occ)
         posting.occurrences["body"] = list(body_occ)
 
-        return posting, 12 + 4*(len_author + len_title + len_body)
+        return posting, 12 + (len_author + len_title + len_body)
