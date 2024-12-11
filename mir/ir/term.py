@@ -13,8 +13,8 @@ class Term:
         # [len, string, id, idf]
         term_bytes = self.term.encode('utf-8')
         term_len = len(term_bytes)
-        idf = self.info.get('idf', 0)
-        pack = struct.pack(f'!i{term_len}sf', term_len, term_bytes, idf)
+        pll = self.info.get('posting_list_len', 0)
+        pack = struct.pack(f'!i{term_len}si', term_len, term_bytes, pll)
         return pack
     
     @staticmethod
@@ -24,8 +24,8 @@ class Term:
         term = struct.unpack(f'!{term_len}s', data[:term_len])[0]
         term = term.decode('utf-8')
         data = data[term_len:] 
-        idf = struct.unpack('!f', data[:4])[0]
-        return Term(term, id, idf=idf)
+        pll = struct.unpack('!i', data[:4])[0]
+        return Term(term, id, posting_list_len=pll)
     
 
 TERM_SERDE = Serde[Term](

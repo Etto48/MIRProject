@@ -98,7 +98,9 @@ class CoreIndex(Index):
             # Se la posting per il documento non esiste, creala
             if doc_id not in self.postings[term_id]:
                 self.postings[term_id][doc_id] = Posting(doc_id, term_id)
-                self.global_info["posting_lengths"][term_id] += 1
+                term_pll = self.terms[term_id].info.get('posting_list_len', 0) 
+                term_pll += 1
+                self.terms[term_id].info['posting_list_len'] = term_pll
             posting = self.postings[term_id][doc_id]
             posting.occurrences[field].append(token.position)
 
@@ -175,11 +177,6 @@ class CoreIndex(Index):
     def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], tokenizer: Tokenizer, verbose: bool = False) -> None:
         super().bulk_index_documents(docs, tokenizer, verbose)
         self.global_info["avg_field_lengths"] = self._compute_avg_field_lengths()
-        N = self.global_info["num_docs"]
-
-        for term_id in range(self.terms.next_key()):
-            self.terms[term_id].info['idf'] = (N/self.global_info["posting_lengths"][term_id])
-
 
 
     def save(self) -> None:
