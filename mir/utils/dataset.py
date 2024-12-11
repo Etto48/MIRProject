@@ -115,24 +115,26 @@ def dataset_to_contents(df: pd.DataFrame) -> SizedGenerator[DocumentContents, No
     return SizedGenerator(inner(), len(df))
 
 
-def get_test_dataset(verbose: bool = False) -> tuple[
+def get_msmarco_dataset(verbose: bool = False) -> tuple[
     tuple[pd.DataFrame, str],
     tuple[pd.DataFrame, str],
     tuple[pd.DataFrame, str]
 ]:
     """
-    Downloads and loads the test dataset, returning the corpus, queries, and qrels
-    both as DataFrames and file paths.
+    Downloads the MS MARCO dataset from the data directory.
     """
-    test_corpus_url = "https://msmarco.z22.web.core.windows.net/msmarcoranking/collection.tar.gz"
-    test_queries_url = "https://msmarco.z22.web.core.windows.net/msmarcoranking/msmarco-test2020-queries.tsv.gz"
-    test_qrels_url = "https://trec.nist.gov/data/deep/2020qrels-pass.txt"
-    urls = [test_corpus_url, test_queries_url, test_qrels_url]
-    test_dir = f"{DATA_DIR}/test"
-    os.makedirs(test_dir, exist_ok=True)
+    corpus = "https://msmarco.z22.web.core.windows.net/msmarcoranking/collection.tar.gz"
+    queries = "https://msmarco.z22.web.core.windows.net/msmarcoranking/queries.tar.gz"
+    qrels_train = "https://msmarco.z22.web.core.windows.net/msmarcoranking/qrels.train.tsv"
+    qrels_valid = "https://trec.nist.gov/data/deep/2019qrels-pass.txt"
+    qrels_test = "https://trec.nist.gov/data/deep/2020qrels-pass.txt"
+    
+    urls = [corpus, queries, qrels_train, qrels_valid, qrels_test]
+    dataset_dir = f"{DATA_DIR}/msmarco"
+    os.makedirs(dataset_dir, exist_ok=True)
     for url in urls:
         file_name = url.split("/")[-1]
-        path = f"{test_dir}/{file_name}"
+        path = f"{dataset_dir}/{file_name}"
         if not os.path.exists(path):
             response = requests.get(url, stream=True)
             response.raise_for_status()
@@ -153,7 +155,7 @@ def get_test_dataset(verbose: bool = False) -> tuple[
             if verbose:
                 print(f"Decompressing {file_name}...")
             with tarfile.open(path, "r:gz") as tar:
-                tar.extractall(test_dir, filter="fully_trusted")
+                tar.extractall(dataset_dir, filter="fully_trusted")
         elif not file_name.endswith(".tar.gz") and \
                 file_name.endswith(".gz") and \
                 not os.path.exists(decompressed_path):
@@ -162,38 +164,6 @@ def get_test_dataset(verbose: bool = False) -> tuple[
             with gzip.open(path, "rb") as f_in:
                 with open(decompressed_path, "wb") as f_out:
                     f_out.write(f_in.read())
-
-    if verbose:
-        print("Loading test dataset...")
-    corpus_path = f"{test_dir}/collection.tsv"
-    queries_path = f"{test_dir}/msmarco-test2020-queries.tsv"
-    qrels_path = f"{test_dir}/2020qrels-pass.txt"
-    corpus = pd.read_csv(
-        corpus_path,
-        sep="\t",
-        header=None,
-        names=["doc_id", "text"],
-        dtype={"doc_id": str})
-    queries = pd.read_csv(
-        queries_path,
-        sep="\t",
-        header=None,
-        names=["query_id", "text"],
-        dtype={"query_id": str})
-    qrels = pd.read_csv(
-        qrels_path,
-        sep=" ",
-        header=None,
-        names=["query_id", "0", "doc_id", "relevance"],
-        dtype={"query_id": str, "doc_id": str})
-    if verbose:
-        print("Test dataset loaded.")
-    return (
-        (corpus, corpus_path),
-        (queries, queries_path),
-        (qrels, qrels_path),
-    )
-
 
 def test_dataset_to_contents(corpus: pd.DataFrame, verbose: bool = False) -> SizedGenerator[DocumentContents, None, None]:
     """
@@ -206,5 +176,5 @@ def test_dataset_to_contents(corpus: pd.DataFrame, verbose: bool = False) -> Siz
 
 
 if __name__ == "__main__":
-    df = get_dataset(verbose=True)
-    corpus, queries, qrels = get_test_dataset(verbose=True)
+    #df = get_dataset(verbose=True)
+    get_msmarco_dataset(verbose=True)
