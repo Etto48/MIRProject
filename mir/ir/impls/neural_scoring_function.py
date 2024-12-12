@@ -1,11 +1,13 @@
 import json
 import warnings
 import sentence_transformers
+from tqdm.auto import tqdm
 
 from mir.ir.document_info import DocumentInfo
 from mir.ir.posting import Posting
 from mir.ir.scoring_function import ScoringFunction
 from mir.ir.term import Term
+from mir.neural_relevance.dataset import MSMarcoDataset
 
 
 class NeuralScoringFunction(ScoringFunction):
@@ -22,25 +24,17 @@ class NeuralScoringFunction(ScoringFunction):
         return score
     
 if __name__ == "__main__":
+    valid = MSMarcoDataset.load("valid")
     scoring_function = NeuralScoringFunction()
-    
-    queries = [
-        "What is the capital of France?",
-        "Who is the president of the United States?"
-    ]
 
-    documents = [
-        "The capital of France is Paris.",
-        "The president of the United States is Joe Biden.",
-        "The capital of Italy is Rome.",
-        "The president of France is Emmanuel Macron.",
-        "The capital of the United States is Washington, D.C.",
-        "The president of Italy is Sergio Mattarella.",
-        "Cookies are made with flour, sugar, and eggs.",
-    ]
-
-    for query in queries:
-        for document in documents:
+    squared_error_sum = 0
+    items = tqdm(range(len(valid)), "Computing scores")
+    for i in items:
+            query, document, relevance = valid[i]
+            relevance = relevance.item()/5
             score = scoring_function(None, None, None, document, query)
-            print(f"Query: {query}\nDocument: {document}\nScore: {score}\n")
+            squared_error_sum += (relevance - score) ** 2
+            items.set_postfix(mse=squared_error_sum / (i + 1))
+    mse = squared_error_sum / len(valid)
+    print(f"Mean squared error: {mse}") # Mean squared error: 0.12194208412600611
 
