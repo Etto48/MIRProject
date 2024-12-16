@@ -102,7 +102,9 @@ class CoreIndex(Index):
                 term_pll += 1
                 self.terms[term_id].info['posting_list_len'] = term_pll
             posting = self.postings[term_id][doc_id]
-            posting.occurrences[field].append(token.position)
+            # OCCURENCES NON é UNA LISTA DI OFFSETS, MA UN NUMERO DI OCCORRENZE
+            # posting.occurrences[field].append(token.position)
+            posting.occurrences[field] += 1
 
     def _group_terms(self, terms: list[Token]) -> Tuple[list[Token], list[Token], list[Token]]:
         author_terms:list[Token] = []

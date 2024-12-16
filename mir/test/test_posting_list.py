@@ -8,13 +8,13 @@ class TestPostingList(unittest.TestCase):
         self.posting_list[1] = Posting(term_id=1, doc_id=1)
         self.posting_list[2] = Posting(term_id=1, doc_id=2)
 
-        self.posting_list[1].occurrences["author"] = [1, 2, 3]
-        self.posting_list[1].occurrences["title"] = [4, 5]
-        self.posting_list[1].occurrences["body"] = [6]
+        self.posting_list[1].occurrences["author"] = 3
+        self.posting_list[1].occurrences["title"] = 2
+        self.posting_list[1].occurrences["body"] = 1
 
-        self.posting_list[2].occurrences["author"] = [1, 2, 3]
-        self.posting_list[2].occurrences["title"] = [4, 5]
-        self.posting_list[2].occurrences["body"] = [6]
+        self.posting_list[2].occurrences["author"] = 3
+        self.posting_list[2].occurrences["title"] = 2
+        self.posting_list[2].occurrences["body"] = 1
 
     def test_serialization(self):
         serialized_data = POSTING_LIST_SERDE.serialize(self.posting_list)

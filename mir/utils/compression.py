@@ -46,3 +46,14 @@ def ints_from_vbc(b: bytes) -> list[int]:
     if current_int != 0:
         raise ValueError("Invalid VB code")
     return ret
+
+def int_from_vbc(b: bytes) -> int:
+    current_int = 0
+    current_shift = 0
+    for byte in b:
+        has_next = byte & 0b1000_0000
+        current_int = current_int + ((byte & 0b0111_1111) << current_shift)
+        if not has_next:
+            return current_int
+        current_shift += 7
+    raise ValueError("Invalid VB code")
