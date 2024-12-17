@@ -47,6 +47,6 @@ class BM25FScoringFunction:
                     field_index = field_indices[field]
                     avg_dlf = self.index.get_global_info()['avg_field_lengths'][field]
                     bb = 1 - self.b + self.b * document.lengths[field_index] / avg_dlf
-                    tf = len(posting.occurrences.get(field, []))
+                    tf = posting.occurrences.get(field, 0)
                     tfd += weight * tf / bb
         return tfd

@@ -13,8 +13,8 @@ class TestBM25FScoringFunction(unittest.TestCase):
         # Mock data
         self.document = DocumentInfo(id=1, lengths=[100, 200, 300])  # Example document with field lengths
         self.postings = [
-            Posting(term_id=1, doc_id=1, occurrences={"title": [1, 2], "body": [5]}),
-            Posting(term_id=2, doc_id=1, occurrences={"body": [3, 4]})
+            Posting(term_id=1, doc_id=1, occurrences={"title": 2, "body": 1}),
+            Posting(term_id=2, doc_id=1, occurrences={"body": 2})
         ]
         self.query = [Term(term="term1", id=1, idf=2.0), Term(term="term2", id=2, idf=1.5)]
         
