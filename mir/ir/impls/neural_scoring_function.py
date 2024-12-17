@@ -1,5 +1,6 @@
 import json
 import warnings
+import numpy as np
 import sentence_transformers
 from tqdm.auto import tqdm
 
@@ -21,20 +22,27 @@ class NeuralScoringFunction(ScoringFunction):
         query_embedding = self.model.encode(query_content) 
         document_embedding = self.model.encode(document_content)
         score = self.model.similarity(query_embedding, document_embedding).item()
-        return score
+        return (score + 1) / 2
     
 if __name__ == "__main__":
     valid = MSMarcoDataset.load("valid")
     scoring_function = NeuralScoringFunction()
 
     squared_error_sum = 0
+    bce = 0
     items = tqdm(range(len(valid)), "Computing scores")
     for i in items:
             query, document, relevance = valid[i]
             relevance = relevance.item()/5
             score = scoring_function(None, None, None, document, query)
             squared_error_sum += (relevance - score) ** 2
-            items.set_postfix(mse=squared_error_sum / (i + 1))
+            bce += - relevance * np.log(score) - (1 - relevance) * np.log(1 - score)
+            items.set_postfix(mse=squared_error_sum / (i + 1), bce=bce / (i + 1))
     mse = squared_error_sum / len(valid)
-    print(f"Mean squared error: {mse}") # Mean squared error: 0.12194208412600611
+    bce /= len(valid)
+    print(f"Mean squared error: {mse}")
+    print(f"Binary cross-entropy: {bce}")
+
+    # Mean squared error: 0.34285212729908354
+    # Binary cross-entropy: 1.1249619396399861
 

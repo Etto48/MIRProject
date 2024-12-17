@@ -125,11 +125,13 @@ def get_msmarco_dataset(verbose: bool = False) -> tuple[
     """
     corpus = "https://msmarco.z22.web.core.windows.net/msmarcoranking/collection.tar.gz"
     queries = "https://msmarco.z22.web.core.windows.net/msmarcoranking/queries.tar.gz"
+    queries_valid = "https://msmarco.z22.web.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz"
+    queries_test = "https://msmarco.z22.web.core.windows.net/msmarcoranking/msmarco-test2020-queries.tsv.gz"
     qrels_train = "https://msmarco.z22.web.core.windows.net/msmarcoranking/qrels.train.tsv"
     qrels_valid = "https://trec.nist.gov/data/deep/2019qrels-pass.txt"
     qrels_test = "https://trec.nist.gov/data/deep/2020qrels-pass.txt"
     
-    urls = [corpus, queries, qrels_train, qrels_valid, qrels_test]
+    urls = [corpus, queries, queries_valid, queries_test, qrels_train, qrels_valid, qrels_test]
     dataset_dir = f"{DATA_DIR}/msmarco"
     os.makedirs(dataset_dir, exist_ok=True)
     for url in urls:

@@ -20,7 +20,7 @@ class MSMarcoDataset(torch.utils.data.Dataset):
                 queries_path = f"{DATA_DIR}/msmarco/queries.train.tsv"
                 qrels_path = f"{DATA_DIR}/msmarco/qrels.train.tsv"
             case "valid":
-                queries_path = f"{DATA_DIR}/msmarco/queries.eval.tsv"
+                queries_path = f"{DATA_DIR}/msmarco/msmarco-test2019-queries.tsv"
                 qrels_path = f"{DATA_DIR}/msmarco/2019qrels-pass.txt"
             case "test":
                 raise NotImplementedError(f"Mode {mode} not implemented.")
