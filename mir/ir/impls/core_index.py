@@ -125,6 +125,11 @@ class CoreIndex(Index):
         return author_terms, title_terms, body_terms
 
     def index_document(self, doc: DocumentContents, tokenizer: Tokenizer) -> None:
+        doc_id = self.document_info.next_key()
+        if doc.__dict__.get("doc_id") is not None:
+            if doc.doc_id < doc_id:
+                return
+            
         terms = tokenizer.tokenize_document(doc)
 
         self.global_info["num_docs"] += 1
@@ -135,9 +140,6 @@ class CoreIndex(Index):
         title_term_ids = self._map_terms_to_ids(title_terms)
         body_term_ids = self._map_terms_to_ids(body_terms)
         
-        doc_id = self.document_info.next_key()
-        if doc.__dict__.get("doc_id") is not None:
-            assert doc_id == doc.doc_id, f"Indexing document with id {doc.doc_id} but expected {doc_id}, document ids out of order or duplicated"
         doc_info = DocumentInfo.from_document_contents(doc_id, doc, tokenizer)
         self.document_info.append(doc_info)
         self.document_contents.append(doc)
