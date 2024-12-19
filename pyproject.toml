@@ -2,25 +2,21 @@
 name = "mir"
 version = "0.1.0"
 description = "MIR Project"
-authors = [
-    { name = "Ettore Ricci" },
-    { name = "Paolo Palumbo" },
-    { name = "Zahra Omrani" },
-    { name = "Erni Deliallisi" },
-]
-license = { file = "LICENSE" }
-dependencies = [
-    "pandas",
-    "tqdm",
-    "iprogress",
-    "ipywidgets",
-    "unidecode",
-    "kaggle",
-    "GitPython",
-    "nltk",
-    "more_itertools",
-    "python-terrier"
-]
+dependencies = [ "pandas", "tqdm", "iprogress", "ipywidgets", "unidecode", "kaggle", "GitPython", "nltk", "more_itertools", "python-terrier", "sentence_transformers", "xformers", "tiktoken",]
+[[project.authors]]
+name = "Ettore Ricci"
 
-[tool.setuptools]
-package-dir = { "mir" = "mir" }
+[[project.authors]]
+name = "Paolo Palumbo"
+
+[[project.authors]]
+name = "Zahra Omrani"
+
+[[project.authors]]
+name = "Erni Deliallisi"
+
+[project.license]
+file = "LICENSE"
+
+[tool.setuptools.package-dir]
+mir = "mir"
