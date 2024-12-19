@@ -99,3 +99,17 @@ class CachedList(Generic[T]):
         Update the inner FileList with any dirty values in the cache.
         """
         self.write()
+
+    def append(self, value: T) -> int:
+        """
+        Append a value to the end of the list.
+
+        # Parameters
+        - value (T): The value to append.
+
+        # Returns
+        - int: The key of the appended value.
+        """
+        key = self.next_key()
+        self[key] = value
+        return key
