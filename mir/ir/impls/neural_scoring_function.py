@@ -1,9 +1,9 @@
-import json
-import warnings
 import numpy as np
-import sentence_transformers
+import torch
 from tqdm.auto import tqdm
 
+from mir import DATA_DIR
+from mir.neural_relevance.model import NeuralRelevance
 from mir.ir.document_info import DocumentInfo
 from mir.ir.posting import Posting
 from mir.ir.scoring_function import ScoringFunction
@@ -14,15 +14,13 @@ from mir.neural_relevance.dataset import MSMarcoDataset
 class NeuralScoringFunction(ScoringFunction):
     def __init__(self):
         # Load the model
-        model_name = "sentence-transformers/all-MiniLM-L12-v2"
-        self.model = sentence_transformers.SentenceTransformer(model_name)
+        self.model = NeuralRelevance.load(f"{DATA_DIR}/neural_relevance.pth")
+        self.model.eval()
 
     def __call__(self, document: DocumentInfo, postings: list[Posting], query: list[Term], document_content: str, query_content: str, **kwargs) -> float:
-        
-        query_embedding = self.model.encode(query_content) 
-        document_embedding = self.model.encode(document_content)
-        score = self.model.similarity(query_embedding, document_embedding).item()
-        return (score + 1) / 2
+        with torch.no_grad():
+            score = self.model.forward_queries_and_documents([query_content], [document_content])
+        return score.item()
     
 if __name__ == "__main__":
     valid = MSMarcoDataset.load("valid")
@@ -45,4 +43,7 @@ if __name__ == "__main__":
 
     # Mean squared error: 0.34285212729908354
     # Binary cross-entropy: 1.1249619396399861
+
+    # Mean squared error: 0.043635161485957745
+    # Binary cross-entropy: 0.44627394001071446
 

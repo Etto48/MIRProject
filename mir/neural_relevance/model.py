@@ -6,7 +6,6 @@ import transformers
 
 from mir import DATA_DIR
 from mir.neural_relevance.dataset import MSMarcoDataset
-from mir.neural_relevance.pos_enc import PositionalEncoding
 
 class NeuralRelevance(nn.Module):
     def __init__(self):
@@ -19,21 +18,11 @@ class NeuralRelevance(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
         
-        dropout = 0.1
-        hidden_size = 8
+        dropout = 0
 
         self.similairty_head = nn.Sequential(
             nn.Dropout(dropout),
-            nn.Linear(768, hidden_size, device=self.device),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, hidden_size, device=self.device),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, hidden_size, device=self.device),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, 1, device=self.device),
+            nn.Linear(768, 1, device=self.device),
             nn.Sigmoid()
         )
 
@@ -64,7 +53,7 @@ class NeuralRelevance(nn.Module):
         return similarity_loss, mse_similarity_loss
 
     def fit(self, train: MSMarcoDataset, valid: MSMarcoDataset, epochs: int = 100):
-        bs = 32
+        bs = 256
         train_loader = torch.utils.data.DataLoader(
             train,
             batch_size=bs,
