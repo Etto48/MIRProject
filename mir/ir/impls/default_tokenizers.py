@@ -8,7 +8,7 @@ from mir.ir.token_ir import Token, TokenLocation
 
 class DefaultTokenizer(Tokenizer):
     def __init__(self):
-        nltk.download("stopwords", quiet=True)
+        nltk.download("stopwords", quiet=True, download_dir=f"{DATA_DIR}/nltk_data")
         self.stopwords = set(nltk.corpus.stopwords.words("english"))
         self.stemmer = nltk.SnowballStemmer("english")
 
