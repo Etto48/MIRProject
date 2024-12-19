@@ -1,11 +1,12 @@
 from typing import List, Dict
 from mir.ir.document_info import DocumentInfo
 from mir.ir.posting import Posting
+from mir.ir.scoring_function import ScoringFunction
 from mir.ir.term import Term
 import math
 
 
-class BM25FScoringFunction:
+class BM25FScoringFunction(ScoringFunction):
     def __init__(self, k1: float = 1.5, b: float = 0.75, field_weights: Dict[str, float] = None):
         self.k1 = k1
         self.b = b

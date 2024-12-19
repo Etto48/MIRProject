@@ -28,20 +28,22 @@ class CoreIndex(Index):
 
         self.basedir = folder if folder is not None else DATA_DIR
 
+        cache_size = 1024
+
         postings_file = FileList(os.path.join(self.basedir,"postings.index"), os.path.join(self.basedir,"postings.data"))
-        self.postings = CachedList(postings_file, 4, POSTING_LIST_SERDE)
+        self.postings = CachedList(postings_file, cache_size, POSTING_LIST_SERDE)
 
         document_info_file = FileList(os.path.join(self.basedir,"document_info.index"), os.path.join(self.basedir,"document_info.data"))
-        self.document_info = CachedList(document_info_file, 4, DOCUMENT_INFO_SERDE)
+        self.document_info = CachedList(document_info_file, cache_size, DOCUMENT_INFO_SERDE)
 
         document_contents_file = FileList(os.path.join(self.basedir,"document_contents.index"), os.path.join(self.basedir,"document_contents.data"))
-        self.document_contents = CachedList(document_contents_file, 4, DOCUMENT_CONTENTS_SERDE)
+        self.document_contents = CachedList(document_contents_file, cache_size, DOCUMENT_CONTENTS_SERDE)
 
         terms_file = FileList(os.path.join(self.basedir,"terms.index"), os.path.join(self.basedir,"terms.data"))
-        self.terms = CachedList(terms_file, 4, TERM_SERDE)
+        self.terms = CachedList(terms_file, cache_size, TERM_SERDE)
         
         term_lookup_file = FileHMap(os.path.join(self.basedir,"term_lookup.index"), os.path.join(self.basedir,"term_lookup.data"))
-        self.term_lookup = CachedHMap(term_lookup_file, 4, INT_SERDE)
+        self.term_lookup = CachedHMap(term_lookup_file, cache_size, INT_SERDE)
         
         self.global_info: dict[str, Any] = {} # serializzazione json
         # posting lenghts: dict[int, int] 
@@ -134,6 +136,8 @@ class CoreIndex(Index):
         body_term_ids = self._map_terms_to_ids(body_terms)
         
         doc_id = self.document_info.next_key()
+        if doc.__dict__.get("doc_id") is not None:
+            assert doc_id == doc.doc_id, f"Indexing document with id {doc.doc_id} but expected {doc_id}, document ids out of order or duplicated"
         doc_info = DocumentInfo.from_document_contents(doc_id, doc, tokenizer)
         self.document_info.append(doc_info)
         self.document_contents.append(doc)

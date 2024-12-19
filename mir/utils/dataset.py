@@ -173,7 +173,7 @@ def test_dataset_to_contents(corpus: pd.DataFrame, verbose: bool = False) -> Siz
     """
     def inner() -> Generator[DocumentContents, None, None]:
         for _, row in corpus.iterrows():
-            yield DocumentContents(row['doc_id'], row['text'])
+            yield DocumentContents(author="", title="", body=row['text'], doc_id=int(row['docno']))
     return SizedGenerator(inner(), len(corpus))
 
 

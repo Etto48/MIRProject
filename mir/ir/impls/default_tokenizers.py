@@ -1,5 +1,6 @@
 import string
 import nltk
+import nltk.corpus
 from mir import DATA_DIR
 from mir.ir.document_contents import DocumentContents
 from mir.ir.tokenizer import Tokenizer
@@ -8,12 +9,17 @@ from mir.ir.token_ir import Token, TokenLocation
 
 class DefaultTokenizer(Tokenizer):
     def __init__(self):
-        nltk.download("stopwords", quiet=True, download_dir=f"{DATA_DIR}/nltk_data")
-        self.stopwords = set(nltk.corpus.stopwords.words("english"))
+        download_dir = f"{DATA_DIR}/nltk_data"
+        nltk.download("stopwords", quiet=True, download_dir=download_dir,)
+        stopwords_from_path = nltk.data.find("corpora/stopwords/english", [download_dir])
+        with open(stopwords_from_path) as f:
+            self.stopwords = frozenset(f.read().splitlines())
+        
         self.stemmer = nltk.SnowballStemmer("english")
+        self.remove_punctuation = str.maketrans('','', string.punctuation)
 
     def tokenize_query(self, query: str) -> list[Token]:
-        query_list = query.translate(str.maketrans('','', string.punctuation)).lower().split()
+        query_list = query.translate(self.remove_punctuation).lower().split()
         token_list = []
 
         for idx, word in enumerate(query_list) :
@@ -24,9 +30,9 @@ class DefaultTokenizer(Tokenizer):
         return token_list
 
     def tokenize_document(self, doc: DocumentContents) -> list[Token]:
-        author_list = doc.author.translate(str.maketrans('','', string.punctuation)).lower().split()
-        title_list = doc.title.translate(str.maketrans('','', string.punctuation)).lower().split()
-        body_list = doc.body.translate(str.maketrans('','', string.punctuation)).lower().split()
+        author_list = doc.author.translate(self.remove_punctuation).lower().split()
+        title_list = doc.title.translate(self.remove_punctuation).lower().split()
+        body_list = doc.body.translate(self.remove_punctuation).lower().split()
         
         token_list = []
 

@@ -17,7 +17,7 @@ class NeuralScoringFunction(ScoringFunction):
         self.model = NeuralRelevance.load(f"{DATA_DIR}/neural_relevance.pth")
         self.model.eval()
 
-    def __call__(self, document: DocumentInfo, postings: list[Posting], query: list[Term], document_content: str, query_content: str, **kwargs) -> float:
+    def __call__(self, document: DocumentInfo, postings: list[Posting], query: list[Term], *, document_content: str, query_content: str, **kwargs) -> float:
         with torch.no_grad():
             score = self.model.forward_queries_and_documents([query_content], [document_content])
         return score.item()
