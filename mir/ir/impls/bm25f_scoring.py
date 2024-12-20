@@ -27,7 +27,7 @@ class BM25FScoringFunction(ScoringFunction):
         tfd = self._wtf(term, document, postings_dict, avg_field_lengths)
         
         if tfd > 0:
-            return (tfd / (self.k1 + tfd)) * math.log(term.info['posting_list_len'] / num_docs)
+            return (tfd / (self.k1 + tfd)) * math.log(num_docs / term.info['posting_list_len'])
         return 0.0
 
     def _wtf(self, term: Term, document: DocumentInfo, postings_dict: dict[int, Posting], avg_field_lengths: dict[str, int]) -> float:
