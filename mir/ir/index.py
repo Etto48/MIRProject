@@ -101,12 +101,6 @@ class Index(Protocol):
         - tokenizer (Tokenizer): The tokenizer to use to tokenize the document.
         """
 
-    def save(self) -> None:
-        """
-        Save the index to disk.
-        """
-        return
-
     def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], tokenizer: Tokenizer, verbose: bool = False) -> None:
         """
         Add multiple documents to the index, this calls index_document for each document.
@@ -115,10 +109,6 @@ class Index(Protocol):
         - docs (SizedGenerator[DocumentContents, None, None]): A generator of documents to add to the index.
         - tokenizer (Tokenizer): The tokenizer to use to tokenize the documents.
         - verbose (bool): Whether to show a progress bar.
-        """
-        try:
-            for doc in tqdm(docs, desc="Indexing documents", disable=not verbose, total=len(docs), mininterval=1):
-                self.index_document(doc, tokenizer)
-        except KeyboardInterrupt:
-            pass
-        self.save()
+        """        
+        for doc in tqdm(docs, desc="Indexing documents", disable=not verbose, total=len(docs)):
+            self.index_document(doc, tokenizer)

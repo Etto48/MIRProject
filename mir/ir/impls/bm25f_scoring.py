@@ -39,10 +39,12 @@ class BM25FScoringFunction(ScoringFunction):
 
         posting = postings_dict[term.id]
         for field, weight in self.field_weights.items():
+            tf = posting.occurrences.get(field, 0)
+            if tf == 0:
+                continue
             field_index = field_indices[field]
             avg_dlf = avg_field_lengths[field]
             bb = 1 - self.b + self.b * document.lengths[field_index] / avg_dlf
-            tf = posting.occurrences.get(field, 0)
             tfd += weight * tf / bb
 
         return tfd

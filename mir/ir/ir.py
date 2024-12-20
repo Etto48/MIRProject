@@ -120,25 +120,28 @@ class Ir:
             postings_cache[lowest_doc_id] = postings
             # now that we have all the info about the current document, we can score it
             global_info = self.index.get_global_info()
-            global_info["document_content"] = self.index.get_document_contents(lowest_doc_id).body
-            global_info["query_content"] = query
             score = first_scoring_function(self.index.get_document_info(lowest_doc_id), postings, terms, **global_info)
             # we add the score and doc_id to the priority queue
             priority_queue.push(lowest_doc_id, score)
+        
+        priority_queue.finalise()
 
         for scoring_function in scoring_functions[1:]:
             ks.pop()
             new_priority_queue = PriorityQueue(ks[-1])
             for score, doc_id in priority_queue:
                 postings = postings_cache[doc_id]
-                new_score = scoring_function(self.index.get_document_info(doc_id), postings, terms, **self.index.get_global_info())
+                global_info = self.index.get_global_info()
+                global_info["document_content"] = self.index.get_document_contents(doc_id).body
+                global_info["query_content"] = query
+                new_score = scoring_function(self.index.get_document_info(doc_id), postings, terms, **global_info)
                 new_priority_queue.push(doc_id, new_score)
             priority_queue = new_priority_queue
-        
-        priority_queue.finalise()
+            priority_queue.finalise()
 
         for score, doc_id in priority_queue:
             ret = self.index.get_document_contents(doc_id)
+            ret.add_field("id", doc_id)
             ret.set_score(score)
             yield ret
 
@@ -156,16 +159,15 @@ class Ir:
         - pd.DataFrame: The run file. It has the columns 
         "query_id", "Q0", "document_no", "rank", "score", "run_id".
         """
-        run = pd.DataFrame(
-            columns=["query_id", "Q0", "document_no", "rank", "score", "run_id"])
+        
+        run = []
         for _, query_row in tqdm(queries.iterrows(), desc="Running queries", disable=not verbose, total=len(queries)):
             query_id = query_row["query_id"]
             query = query_row["text"]
             for rank, doc in enumerate(self.search(query), start=1):
-                run.loc[len(run)] = [
-                    query_id, "Q0",
-                    doc.title, rank, doc.score, self.__class__.__name__]
-        run.reset_index(drop=True, inplace=True)
+                run.append(
+                    {"query_id": query_id, "Q0": "Q0", "doc_id": doc.id, "rank": rank, "score": doc.score, "run_id": self.__class__.__name__})
+        run = pd.DataFrame(run)
         return run
 
 

@@ -18,6 +18,8 @@ class NeuralScoringFunction(ScoringFunction):
         self.model.eval()
 
     def __call__(self, document: DocumentInfo, postings: list[Posting], query: list[Term], *, document_content: str, query_content: str, **kwargs) -> float:
+        if len(document_content) == 0 or len(query_content) == 0:
+            return 0.0
         with torch.no_grad():
             score = self.model.forward_queries_and_documents([query_content], [document_content])
         return score.item()

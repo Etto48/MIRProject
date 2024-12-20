@@ -8,6 +8,7 @@ from tqdm.auto import tqdm
 from mir import DATA_DIR
 from mir.ir.impls.bm25f_scoring import BM25FScoringFunction
 from mir.ir.impls.core_index import CoreIndex
+from mir.ir.impls.default_index import DefaultIndex
 from mir.ir.impls.neural_scoring_function import NeuralScoringFunction
 from mir.ir.ir import Ir
 from mir.utils.dataset import get_msmarco_dataset, test_dataset_to_contents
@@ -43,20 +44,22 @@ def test_pyterrier():
     topics['query'] = topics['query'].apply(preprocess_query)
 
 
-    my_ir = Ir(CoreIndex(f"{DATA_DIR}/msmarco-ir-index"), scoring_functions=[
-        (1000, BM25FScoringFunction()),
-        (100, NeuralScoringFunction())
+    my_ir = Ir(DefaultIndex(f"{DATA_DIR}/msmarco-default-index.pkl"), scoring_functions=[
+        (10, BM25FScoringFunction()),
+        (10, NeuralScoringFunction())
     ])
     if len(my_ir.index) == 0:
         dataset = pd.read_csv(dataset_csv, sep='\t', header=None, names=['docno', 'text'], dtype={'docno': str, 'text': str})
         sized_generator = test_dataset_to_contents(dataset)
         my_ir.bulk_index_documents(sized_generator, verbose=True)
-    
 
+    my_topics = pd.read_csv(topics_path, sep='\t', header=None, names=['query_id', 'text'], dtype={'query_id': int, 'text': str})
+    my_run = my_ir.get_run(my_topics, verbose=True)
+    print(my_run)
 
     eval_metrics = ["map", "ndcg", "recall"]
     print("Running experiment")
-    results = pt.Experiment([pipeline], topics, qrels, eval_metrics)
+    results = pt.Experiment([pipeline, my_run], topics, qrels, eval_metrics)
     print(results)
 
 if __name__ == "__main__":

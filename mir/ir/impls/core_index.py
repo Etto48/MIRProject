@@ -29,21 +29,22 @@ class CoreIndex(Index):
         self.basedir = folder if folder is not None else DATA_DIR
 
         cache_size = 1024
+        page_size = 32
 
-        postings_file = FileList(os.path.join(self.basedir,"postings.index"), os.path.join(self.basedir,"postings.data"))
+        postings_file = FileList(os.path.join(self.basedir,"postings.index"), os.path.join(self.basedir,"postings.data"), page_size)
         self.postings = CachedList(postings_file, cache_size, POSTING_LIST_SERDE)
 
-        document_info_file = FileList(os.path.join(self.basedir,"document_info.index"), os.path.join(self.basedir,"document_info.data"))
+        document_info_file = FileList(os.path.join(self.basedir,"document_info.index"), os.path.join(self.basedir,"document_info.data"), page_size)
         self.document_info = CachedList(document_info_file, cache_size, DOCUMENT_INFO_SERDE)
 
-        document_contents_file = FileList(os.path.join(self.basedir,"document_contents.index"), os.path.join(self.basedir,"document_contents.data"))
+        document_contents_file = FileList(os.path.join(self.basedir,"document_contents.index"), os.path.join(self.basedir,"document_contents.data"), page_size)
         self.document_contents = CachedList(document_contents_file, cache_size, DOCUMENT_CONTENTS_SERDE)
 
-        terms_file = FileList(os.path.join(self.basedir,"terms.index"), os.path.join(self.basedir,"terms.data"))
+        terms_file = FileList(os.path.join(self.basedir,"terms.index"), os.path.join(self.basedir,"terms.data"), page_size)
         self.terms = CachedList(terms_file, cache_size, TERM_SERDE)
         
-        term_lookup_file = FileHMap(os.path.join(self.basedir,"term_lookup.index"), os.path.join(self.basedir,"term_lookup.data"))
-        self.term_lookup = CachedHMap(term_lookup_file, cache_size, INT_SERDE)
+        term_lookup_file = FileHMap(os.path.join(self.basedir,"term_lookup.index"), os.path.join(self.basedir,"term_lookup.data"), page_size)
+        self.term_lookup = CachedHMap(term_lookup_file, cache_size * 128, INT_SERDE)
         
         self.global_info: dict[str, Any] = {} # serializzazione json
         # posting lenghts: dict[int, int] 
@@ -86,7 +87,6 @@ class CoreIndex(Index):
                     term_id = self.terms.next_key()
                     self.terms.append(Term(term.token, term_id))
                     self.term_lookup[StrHK(term.token)] = term_id
-                    self.global_info["posting_lengths"][term_id] = 0
                 case already_mapped:
                     term_id = already_mapped
             term_ids.append(term_id)
@@ -126,13 +126,17 @@ class CoreIndex(Index):
 
     def index_document(self, doc: DocumentContents, tokenizer: Tokenizer) -> None:
         doc_id = self.document_info.next_key()
+
+        self.global_info["num_docs"] += 1
+
+        doc_info = DocumentInfo.from_document_contents(doc_id, doc, tokenizer)
+        self._sum_up_lengths(doc_info.lengths)
+
         if doc.__dict__.get("doc_id") is not None:
             if doc.doc_id < doc_id:
                 return
             
         terms = tokenizer.tokenize_document(doc)
-
-        self.global_info["num_docs"] += 1
 
         author_terms, title_terms, body_terms = self._group_terms(terms)
 
@@ -140,11 +144,9 @@ class CoreIndex(Index):
         title_term_ids = self._map_terms_to_ids(title_terms)
         body_term_ids = self._map_terms_to_ids(body_terms)
         
-        doc_info = DocumentInfo.from_document_contents(doc_id, doc, tokenizer)
+        
         self.document_info.append(doc_info)
         self.document_contents.append(doc)
-
-        self._sum_up_lengths(doc_info.lengths)
 
         self._update_postings(author_term_ids, author_terms, doc_id, 'author')
         self._update_postings(title_term_ids, title_terms, doc_id, 'title')
@@ -185,11 +187,11 @@ class CoreIndex(Index):
     def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], tokenizer: Tokenizer, verbose: bool = False) -> None:
         super().bulk_index_documents(docs, tokenizer, verbose)
         self.global_info["avg_field_lengths"] = self._compute_avg_field_lengths()
+        self.save()
 
 
     def save(self) -> None:
         with open(os.path.join(self.basedir, "global_info.json"), "w") as f:
-            del self.global_info["posting_lengths"]
             json.dump(self.global_info, f)
 
         self.postings.write()
@@ -202,8 +204,11 @@ class CoreIndex(Index):
     @staticmethod
     def load(folder: str = None) -> 'CoreIndex':
         index = CoreIndex(folder)
-        global_info_path = os.path.join(index.basedir, "global_info.json")
-        if os.path.exists(global_info_path):
-            with open(global_info_path, "r") as f:
-                index.global_info = json.load(f)
-        return index
+        try:
+            global_info_path = os.path.join(index.basedir, "global_info.json")
+            if os.path.exists(global_info_path):
+                with open(global_info_path, "r") as f:
+                    index.global_info = json.load(f)
+            return index
+        except FileNotFoundError:
+            return index

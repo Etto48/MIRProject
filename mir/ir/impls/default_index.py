@@ -2,12 +2,13 @@ from collections import OrderedDict
 from collections.abc import Generator
 import os
 import pickle
-from typing import Optional
+from typing import Any, Optional
 from mir.ir.document_info import DocumentInfo
 from mir.ir.document_contents import DocumentContents
 from mir.ir.index import Index
 from mir.ir.posting import Posting
 from mir.ir.term import Term
+from mir.ir.token_ir import TokenLocation
 from mir.ir.tokenizer import Tokenizer
 from mir.utils.sized_generator import SizedGenerator
 
@@ -21,6 +22,11 @@ class DefaultIndex(Index):
         self.terms: list[Term] = []
         self.term_lookup: dict[str, int] = {}
         self.path = None
+        self.total_field_lengths = {
+            "author": 0,
+            "title": 0,
+            "body": 0
+        }
         if path is not None:
             self.path = path
             if os.path.exists(path):
@@ -41,12 +47,28 @@ class DefaultIndex(Index):
 
     def get_term_id(self, term: str) -> Optional[int]:
         return self.term_lookup.get(term)
+    
+    def get_global_info(self) -> dict[str, Any]:
+        return {
+            "avg_field_lengths": {
+                "author": self.total_field_lengths["author"] / len(self.document_info),
+                "title": self.total_field_lengths["title"] / len(self.document_info),
+                "body": self.total_field_lengths["body"] / len(self.document_info)
+            },
+            "num_docs": len(self.document_info)
+        }
 
     def __len__(self) -> int:
         return len(self.document_info)
 
     def index_document(self, doc: DocumentContents, tokenizer: Tokenizer) -> None:
         terms = tokenizer.tokenize_document(doc)
+        author_length = sum(1 for term in terms if term.where == TokenLocation.AUTHOR)
+        title_length = sum(1 for term in terms if term.where == TokenLocation.TITLE)
+        body_length = sum(1 for term in terms if term.where == TokenLocation.BODY)
+        self.total_field_lengths["author"] += author_length
+        self.total_field_lengths["title"] += title_length
+        self.total_field_lengths["body"] += body_length
         term_ids = []
         for term in terms:
             if term.token not in self.term_lookup:
