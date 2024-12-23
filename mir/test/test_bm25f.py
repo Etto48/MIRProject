@@ -38,7 +38,7 @@ class TestBM25FScoringFunction(unittest.TestCase):
         len_index = {"author": 0, "title": 1, "body": 2}
         postings_lookup = {p.term_id: p for p in self.postings}
         for q in self.query:
-            idf = math.log(q.info["posting_list_len"] / self.index_mock.get_global_info()["num_docs"])
+            idf = math.log(self.index_mock.get_global_info()["num_docs"] / q.info["posting_list_len"])
             p = postings_lookup.get(q.id)
             tf = 0
             for field, o in p.occurrences.items():
