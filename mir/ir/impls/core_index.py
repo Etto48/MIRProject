@@ -115,12 +115,14 @@ class CoreIndex(Index):
             if term_id >= self.postings.next_key():
                 self.postings.append(PostingList())
             # Se la posting per il documento non esiste, creala
+            posting_list = self.postings[term_id]
             if doc_id not in self.postings[term_id]:
-                self.postings[term_id][doc_id] = Posting(doc_id, term_id)
+                posting_list[doc_id] = Posting(doc_id, term_id)
                 term_pll = self.terms[term_id].info.get('posting_list_len', 0) 
                 term_pll += 1
                 self.terms[term_id].info['posting_list_len'] = term_pll
-            self.postings[term_id][doc_id].occurrences[field] += 1
+            posting_list[doc_id].occurrences[field] += 1
+            self.postings[term_id] = posting_list
 
     def _group_terms(self, terms: list[Token]) -> Tuple[list[Token], list[Token], list[Token]]:
         author_terms:list[Token] = []

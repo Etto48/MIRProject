@@ -23,22 +23,10 @@ class Posting:
         return packed_data
     
     @staticmethod
-    def __deser__(or_data: bytes, term_id: int, doc_id: int):
+    def __deser__(data: bytes, term_id: int, doc_id: int):
         """
         Deserializza il Posting da un buffer di byte.
         """
-        data = or_data
-        posting = Posting(doc_id, term_id)
         occ_author, occ_title, occ_body = struct.unpack("III", data[:12])
 
-        posting.occurrences["author"] = occ_author
-        posting.occurrences["title"] = occ_title
-        posting.occurrences["body"] = occ_body
-
-        return posting, 12
-
-if __name__ == "__main__":
-    p = Posting(0, 0, {"author": 1, "title": 2, "body": 3})
-    ser = p.__ser__()
-    print(ser)
-    print(Posting.__deser__(ser, 0, 0))
+        return Posting(doc_id, term_id, {"author": occ_author, "title": occ_title, "body": occ_body}), 12

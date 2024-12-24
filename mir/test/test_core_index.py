@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 from mir import DATA_DIR
 from mir.ir.document_info import DocumentInfo
 from mir.ir.document_contents import DocumentContents
+from mir.ir.impls.default_tokenizers import DefaultTokenizer
 from mir.ir.serializable.posting_list import PostingList
 from mir.ir.token_ir import Token, TokenLocation
 from mir.ir.impls.core_index import CoreIndex
@@ -171,6 +172,35 @@ class TestCoreIndex(unittest.TestCase):
         self.assertEqual(loaded_index.terms.next_key(), 1)
         self.assertEqual(loaded_index.term_lookup["term1"], 0)
         self.assertEqual(loaded_index.postings.next_key(), 1)
+
+    def test_postings(self):
+        index = CoreIndex(self.test_folder)
+
+        # Mock documents
+        docs = [
+            DocumentContents("author1", "title1", "tok1 tok2 tok3", doc_id=0),
+            DocumentContents("author2", "title2", "tok4 tok5 tok6", doc_id=1),
+            DocumentContents("author3", "title3", "tok1 tok4 tok3", doc_id=2),
+            DocumentContents("author4", "title4", "tok2 tok5 tok6", doc_id=3),
+            DocumentContents("author5", "title5", "tok1 tok2 tok3", doc_id=4),
+            DocumentContents("author6", "title6", "tok4 tok5 tok6", doc_id=5),
+        ]
+
+        tokenizer = DefaultTokenizer()
+
+        for doc in docs:
+            index.index_document(doc, tokenizer)
+        
+        index.save()
+
+        # Load index
+        loaded_index = CoreIndex(self.test_folder)
+
+        for term_id in range(index.postings.next_key()):
+            for posting in index.get_postings(term_id):
+                self.assertEqual(loaded_index.postings[term_id][posting.doc_id].doc_id, posting.doc_id)
+                self.assertEqual(loaded_index.postings[term_id][posting.doc_id].term_id, posting.term_id)
+                self.assertEqual(loaded_index.postings[term_id][posting.doc_id].occurrences, posting.occurrences)
 
 
 if __name__ == "__main__":

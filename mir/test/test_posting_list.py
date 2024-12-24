@@ -32,6 +32,7 @@ class TestPostingList(unittest.TestCase):
 
     def test_deserialization(self):
         serialized_data = POSTING_LIST_SERDE.serialize(self.posting_list)
+        print(serialized_data)
         deserialized_posting_list = POSTING_LIST_SERDE.deserialize(serialized_data, term_id=1)
         self.assertEqual(len(deserialized_posting_list), len(self.posting_list))
         for doc_id, posting in self.posting_list.items():

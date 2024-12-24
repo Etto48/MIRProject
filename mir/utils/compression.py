@@ -3,6 +3,7 @@ def into_dgaps(doc_ids: list[int]) -> list[int]:
     doc_ids_dgaps = [0]*len(doc_ids)
     for i, doc_id in enumerate(doc_ids):
         doc_ids_dgaps[i] = doc_id - current_id
+        assert doc_ids_dgaps[i] >= 0, f"Negative gap, {doc_id} - {current_id}"
         current_id = doc_id
     return doc_ids_dgaps
 

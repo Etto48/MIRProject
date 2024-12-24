@@ -14,12 +14,12 @@ class PostingList(OrderedDict[int, Posting]):
         Serializza la PostingList in formato binario ottimizzato.
         """
         # Numero di posting
-        doc_list = [docid for docid in self.keys()]
+        doc_id_list = [posting.doc_id for posting in self.values()]
         # COMPRESSIONE
-        doc_list = ints_to_vbc(into_dgaps(doc_list))
+        doc_list_bytes = ints_to_vbc(into_dgaps(doc_id_list))
 
-        packed_data = struct.pack("i", len(doc_list))
-        packed_data += doc_list
+        packed_data = struct.pack("I", len(doc_list_bytes))
+        packed_data += doc_list_bytes
 
         for posting in self.values():
             packed_data += posting.__ser__()
@@ -34,11 +34,12 @@ class PostingList(OrderedDict[int, Posting]):
         """
         posting_list = PostingList()
         # Numero di posting: lenght of compressed doc_list in bytes
-        num_posting = struct.unpack("i", data[:4])[0]
+        doc_ids_size = struct.unpack("I", data[:4])[0]
         data = data[4:]
-        doc_list = data[:num_posting]
-        doc_list = from_dgaps(ints_from_vbc(doc_list))
-        data = data[num_posting:]
+        doc_list_bytes = data[:doc_ids_size]
+        doc_list = from_dgaps(ints_from_vbc(doc_list_bytes))
+        
+        data = data[doc_ids_size:]
 
         for doc_id in doc_list:
             posting, data_read = Posting.__deser__(data, term_id, doc_id)
