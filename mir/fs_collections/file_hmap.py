@@ -1,6 +1,6 @@
 from typing import Optional
 from mir.fs_collections.file_list import FileList
-from mir.fs_collections.hashable_key.hashable_key import HashableKey
+import hashlib
 
 
 class FileHMap:
@@ -22,19 +22,32 @@ class FileHMap:
         """
         self.inner = FileList(index, path, block_size)
         self.hash_size = hash_size
+
+    def _hash_key(self, key: str) -> int:
+        """
+        Get the hash key for a key.
         
-    def __getitem__(self, key: HashableKey) -> Optional[bytes]:
+        # Parameters
+        - key (str): The key.
+        
+        # Returns
+        - int: The hash key.
+        """
+        hash_value = hashlib.sha3_256(key.encode("utf-8"), usedforsecurity=False).digest()
+        return int.from_bytes(hash_value, "big") % self.hash_size
+        
+    def __getitem__(self, key: str) -> Optional[bytes]:
         """
         Get a value from the FileHMap.
         
         # Parameters
-        - key (HashableKey): The key.
+        - key (str): The key.
         
         # Returns
         - bytes: The value.
         """
         
-        hash_key = hash(key) % self.hash_size
+        hash_key = self._hash_key(key)
         key_buffer = b""
         value_buffer = b""
         header_buffer = b""
@@ -127,12 +140,12 @@ class FileHMap:
         return ret      
     
     @staticmethod
-    def _kv_as_block(key: HashableKey, value: bytes) -> bytes:
+    def _kv_as_block(key: str, value: bytes) -> bytes:
         """
         Convert a key-value pair to a block.
         
         # Parameters
-        - key (HashableKey): The key.
+        - key (str): The key.
         - value (bytes): The value.
         
         # Returns
@@ -142,12 +155,12 @@ class FileHMap:
         header = len(key_bytes).to_bytes(8, "big") + len(value).to_bytes(8, "big")
         return header + key_bytes + value
     
-    def __setitem__(self, key: HashableKey, value: Optional[bytes]) -> Optional[bytes]:
+    def __setitem__(self, key: str, value: Optional[bytes]) -> Optional[bytes]:
         """
         Set a value in the FileHMap.
         
         # Parameters
-        - key (HashableKey): The key.
+        - key (str): The key.
         - value (Optional[bytes]): The value to set. If None, the key is removed.
         
         # Returns
@@ -229,21 +242,21 @@ class FileHMap:
             self.inner[hash_key] = new_data
         return ret
     
-    def __delitem__(self, key: HashableKey):
+    def __delitem__(self, key: str):
         """
         Delete a key from the FileHMap.
         
         # Parameters
-        - key (HashableKey): The key.
+        - key (str): The key.
         """
         self[key] = None
 
-    def __contains__(self, key: HashableKey) -> bool:
+    def __contains__(self, key: str) -> bool:
         """
         Check if a key is in the FileHMap.
         
         # Parameters
-        - key (HashableKey): The key.
+        - key (str): The key.
         
         # Returns
         - bool: True if the key is in the FileHMap.
@@ -258,7 +271,6 @@ if __name__ == "__main__":
     from tqdm.auto import tqdm
     from matplotlib import pyplot as plt
     
-    from mir.fs_collections.hashable_key.impls.str_hk import StrHK
     index_path = f"{DATA_DIR}/test/fhmap.index"
     data_path = f"{DATA_DIR}/test/fhmap.data"
     os.makedirs(f"{DATA_DIR}/test", exist_ok=True)
@@ -279,7 +291,7 @@ if __name__ == "__main__":
         
         start = time.time()
         for i in range(1000):
-            key = StrHK(f"key_{i}")
+            key = f"key_{i}"
             value = f"value_{i}".encode()
             data[key] = value
             fh[key] = value

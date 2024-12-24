@@ -2,7 +2,6 @@ from collections import OrderedDict
 from typing import Generic, Optional, TypeVar
 from mir.fs_collections.cache_entry import CacheEntry
 from mir.fs_collections.file_hmap import FileHMap
-from mir.fs_collections.hashable_key.hashable_key import HashableKey
 from mir.fs_collections.serde import Serde
 
 T = TypeVar('T')
@@ -23,7 +22,7 @@ class CachedHMap(Generic[T]):
         - serde (Serde): The Serde class that contains the serialization and deserialization functions.
         """
         self.inner = file_hmap
-        self.cache: OrderedDict[HashableKey, CacheEntry[T]] = OrderedDict()
+        self.cache: OrderedDict[str, CacheEntry[T]] = OrderedDict()
         self.cache_size = cache_size
         self.serde = serde
         assert isinstance(self.serde, Serde), f"serde must be an instance of Serde, not {
@@ -37,12 +36,12 @@ class CachedHMap(Generic[T]):
         if old_value.dirty:
             self.inner[old_key] = self.serde.serialize(old_value.value)
 
-    def __getitem__(self, key: HashableKey) -> Optional[T]:
+    def __getitem__(self, key: str) -> Optional[T]:
         """
         Retrieve a value from the cache or the inner FileHMap.
 
         # Parameters
-        - key (HashableKey): The key to retrieve.
+        - key (str): The key to retrieve.
 
         # Returns
         - Optional[T]: The value associated with the key, or None if the key is not present
@@ -61,12 +60,12 @@ class CachedHMap(Generic[T]):
                         self._pop_cache()
                     return value
 
-    def __setitem__(self, key: HashableKey, value: Optional[T]):
+    def __setitem__(self, key: str, value: Optional[T]):
         """
         Set a value in the cache or the inner FileHMap.
 
         # Parameters
-        - key (HashableKey): The key to set.
+        - key (str): The key to set.
         - value (Optional[bytes]): The value to set, or None to delete the key.
         """
         if value is not None:
@@ -96,12 +95,12 @@ class CachedHMap(Generic[T]):
         """
         self.write()
 
-    def __delitem__(self, key: HashableKey):
+    def __delitem__(self, key: str):
         """
         Delete a key from the cache and the inner FileHMap.
 
         # Parameters
-        - key (HashableKey): The key to delete.
+        - key (str): The key to delete.
         """
         try:
             del self.cache[key]
@@ -109,12 +108,12 @@ class CachedHMap(Generic[T]):
             pass
         del self.inner[key]
 
-    def __contains__(self, key: HashableKey) -> bool:
+    def __contains__(self, key: str) -> bool:
         """
         Check if a key is in the cache or the inner FileHMap.
 
         # Parameters
-        - key (HashableKey): The key to check.
+        - key (str): The key to check.
 
         # Returns
         - bool: True if the key is present, False otherwise.

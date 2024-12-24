@@ -7,7 +7,6 @@ from mir.fs_collections.cached_hmap import CachedHMap
 from mir.fs_collections.cached_list import CachedList
 from mir.fs_collections.file_hmap import FileHMap
 from mir.fs_collections.file_list import FileList
-from mir.fs_collections.hashable_key.impls.str_hk import StrHK
 from mir.fs_collections.serde import INT_SERDE
 from mir.ir.document_contents import DOCUMENT_CONTENTS_SERDE, DocumentContents
 from mir.ir.document_info import DOCUMENT_INFO_SERDE, DocumentInfo
@@ -72,7 +71,7 @@ class CoreIndex(Index):
         return self.terms[term_id]
 
     def get_term_id(self, term: str) -> Optional[int]:
-        return self.term_lookup[StrHK(term)]
+        return self.term_lookup[term]
     
     def get_global_info(self) -> dict[str, Any]:
         if self.global_info["num_docs"] == 0:
@@ -100,11 +99,11 @@ class CoreIndex(Index):
     def _map_terms_to_ids(self, terms: list[Token]) -> list[int]:
         term_ids = []
         for term in terms:
-            match self.term_lookup[StrHK(term.token)]:
+            match self.term_lookup[term.token]:
                 case None:
                     term_id = self.terms.next_key()
                     self.terms.append(Term(term.token, term_id))
-                    self.term_lookup[StrHK(term.token)] = term_id
+                    self.term_lookup[term.token] = term_id
                 case already_mapped:
                     term_id = already_mapped
             term_ids.append(term_id)
@@ -121,10 +120,7 @@ class CoreIndex(Index):
                 term_pll = self.terms[term_id].info.get('posting_list_len', 0) 
                 term_pll += 1
                 self.terms[term_id].info['posting_list_len'] = term_pll
-            posting = self.postings[term_id][doc_id]
-            # OCCURENCES NON é UNA LISTA DI OFFSETS, MA UN NUMERO DI OCCORRENZE
-            # posting.occurrences[field].append(token.position)
-            posting.occurrences[field] += 1
+            self.postings[term_id][doc_id].occurrences[field] += 1
 
     def _group_terms(self, terms: list[Token]) -> Tuple[list[Token], list[Token], list[Token]]:
         author_terms:list[Token] = []

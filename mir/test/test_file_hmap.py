@@ -1,7 +1,6 @@
 import unittest
 
 from mir.fs_collections.file_hmap import FileHMap
-from mir.fs_collections.hashable_key.impls.str_hk import StrHK
 from mir.test.file_list_test_utils import setup_teardown_files
 
 
@@ -10,13 +9,13 @@ class TestFileHMap(unittest.TestCase):
     def test_file_hmap(self, index_path, data_path):
         fh = FileHMap(index_path, data_path, 16, 4)
         data = {
-            StrHK("pls"): b"work",
-            StrHK("hello"): b"world",
-            StrHK("this"): b"is a test",
-            StrHK("of"): b"the file map class",
-            StrHK("it"): b"should work",
-            StrHK("caffettin,"): b"caffettin",
-            StrHK("lo"): b"bevo, e so contento",
+            "pls": b"work",
+            "hello": b"world",
+            "this": b"is a test",
+            "of": b"the file map class",
+            "it": b"should work",
+            "caffettin,": b"caffettin",
+            "lo": b"bevo, e so contento",
         }
         for k, v in data.items():
             fh[k] = v
@@ -27,24 +26,24 @@ class TestFileHMap(unittest.TestCase):
     def test_file_hmap_replace(self, index_path, data_path):
         fh = FileHMap(index_path, data_path, 16, 4)
         data = {
-            StrHK("pls"): b"work",
-            StrHK("hello"): b"world",
-            StrHK("this"): b"is a test",
-            StrHK("of"): b"the file map class",
-            StrHK("it"): b"should work",
-            StrHK("caffettin,"): b"caffettin",
-            StrHK("lo"): b"bevo, e so contento",
+            "pls": b"work",
+            "hello": b"world",
+            "this": b"is a test",
+            "of": b"the file map class",
+            "it": b"should work",
+            "caffettin,": b"caffettin",
+            "lo": b"bevo, e so contento",
         }
         for k, v in data.items():
             fh[k] = v
         new_data = {
-            StrHK("pls"): b"work work",
-            StrHK("hello"): b"world world",
-            StrHK("this"): b"is a test test",
-            StrHK("of"): b"the file map class class",
-            StrHK("it"): b"should work work",
-            StrHK("caffettin,"): b"caffettin caffettin",
-            StrHK("lo"): b"bevo, e so contento contento",
+            "pls": b"work work",
+            "hello": b"world world",
+            "this": b"is a test test",
+            "of": b"the file map class class",
+            "it": b"should work work",
+            "caffettin,": b"caffettin caffettin",
+            "lo": b"bevo, e so contento contento",
         }
         for k, v in new_data.items():
             self.assertEqual(fh.__setitem__(k,v), data[k])
@@ -55,13 +54,13 @@ class TestFileHMap(unittest.TestCase):
     def test_file_hmap_remove(self, index_path, data_path):
         fh = FileHMap(index_path, data_path, 16, 4)
         data = {
-            StrHK("pls"): b"work",
-            StrHK("hello"): b"world",
-            StrHK("this"): b"is a test",
-            StrHK("of"): b"the file map class",
-            StrHK("it"): b"should work",
-            StrHK("caffettin,"): b"caffettin",
-            StrHK("lo"): b"bevo, e so contento",
+            "pls": b"work",
+            "hello": b"world",
+            "this": b"is a test",
+            "of": b"the file map class",
+            "it": b"should work",
+            "caffettin,": b"caffettin",
+            "lo": b"bevo, e so contento",
         }
         for k, v in data.items():
             fh[k] = v
