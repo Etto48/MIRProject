@@ -49,6 +49,7 @@ def test_pyterrier():
     ])
     if len(my_ir.index) == 0:
         dataset = pd.read_csv(dataset_csv, sep='\t', header=None, names=['docno', 'text'], dtype={'docno': str, 'text': str})
+        dataset = dataset[:10000]
         sized_generator = test_dataset_to_contents(dataset)
         my_ir.bulk_index_documents(sized_generator, verbose=True)
 
