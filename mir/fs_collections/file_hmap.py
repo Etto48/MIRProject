@@ -67,7 +67,7 @@ class FileHMap:
                                 int.from_bytes(header_buffer[8:16], "big")
                             )
                             if header[0] == 0:
-                                if bytes(key) == b"":
+                                if key.encode() == b"":
                                     if header[1] == 0:
                                         return b""
                                     else:
@@ -80,7 +80,7 @@ class FileHMap:
                     case 1:
                         key_buffer += b.to_bytes(1, "big")
                         if len(key_buffer) == header[0]:
-                            if bytes(key) == key_buffer:
+                            if key.encode() == key_buffer:
                                 if header[1] == 0:
                                     return b""
                                 else:
@@ -151,7 +151,7 @@ class FileHMap:
         # Returns
         - bytes: The block.
         """
-        key_bytes = bytes(key)
+        key_bytes = key.encode()
         header = len(key_bytes).to_bytes(8, "big") + len(value).to_bytes(8, "big")
         return header + key_bytes + value
     
@@ -167,7 +167,7 @@ class FileHMap:
         - bytes: The old value.
         """
         
-        hash_key = hash(key) % self.hash_size
+        hash_key = self._hash_key(key)
         
         old_value = self[key]
         if old_value is None:
@@ -197,7 +197,7 @@ class FileHMap:
                                     int.from_bytes(header_buffer[8:16], "big")
                                 )
                                 if header[0] == 0:
-                                    if bytes(key) == b"":
+                                    if key.encode() == b"":
                                         if header[1] == 0:
                                             ret = b""
                                             stage = 3
@@ -210,7 +210,7 @@ class FileHMap:
                         case 1:
                             key_buffer += b.to_bytes(1, "big")
                             if len(key_buffer) == header[0]:
-                                if bytes(key) == key_buffer:
+                                if key.encode() == key_buffer:
                                     if header[1] == 0:
                                         ret = b""
                                         stage = 3

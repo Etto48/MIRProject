@@ -2,7 +2,6 @@ import unittest
 from collections import OrderedDict
 from unittest.mock import MagicMock
 from mir import DATA_DIR
-from mir.fs_collections.hashable_key.impls.str_hk import StrHK
 from mir.ir.document_info import DocumentInfo
 from mir.ir.document_contents import DocumentContents
 from mir.ir.serializable.posting_list import PostingList
@@ -71,31 +70,8 @@ class TestCoreIndex(unittest.TestCase):
 
         # Test ID mapping
         self.assertEqual(index.terms.next_key(), 2)
-        self.assertEqual(index.term_lookup[StrHK("term1")], term_ids[0])
-        self.assertEqual(index.term_lookup[StrHK("term2")], term_ids[1])
-
-    def test_compute_avg_field_lengths(self):
-        index = CoreIndex(self.test_folder)
-
-        # Mock document info
-        doc1 = DocumentInfo(id=0, lengths=[5, 10, 20])
-        doc2 = DocumentInfo(id=1, lengths=[10, 15, 25])
-
-        index.global_info["num_docs"] = 2
-        index._sum_up_lengths(doc1.lengths)
-        index._sum_up_lengths(doc2.lengths)
-
-        # Compute averages
-        avg_lengths = index._compute_avg_field_lengths()
-
-        # Expected values
-        expected = {
-            "author": 7.5,  # (5+10)/2
-            "title": 12.5,  # (10+15)/2
-            "body": 22.5    # (20+25)/2
-        }
-
-        self.assertEqual(avg_lengths, expected)
+        self.assertEqual(index.term_lookup["term1"], term_ids[0])
+        self.assertEqual(index.term_lookup["term2"], term_ids[1])
 
     def test_get_postings(self):
         index = CoreIndex(self.test_folder)
@@ -117,8 +93,8 @@ class TestCoreIndex(unittest.TestCase):
     def test_get_term_id(self):
         index = CoreIndex(self.test_folder)
         # Mock term lookup
-        index.term_lookup[StrHK("term1")] = 0
-        index.term_lookup[StrHK("term2")] = 1
+        index.term_lookup["term1"] = 0
+        index.term_lookup["term2"] = 1
 
         # Test term ID retrieval
         self.assertEqual(index.get_term_id("term1"), 0)
@@ -149,13 +125,13 @@ class TestCoreIndex(unittest.TestCase):
         self.assertEqual(index.global_info['num_docs'], 2)
 
         # Test global info
-        self.assertIn("avg_field_lengths", index.global_info)
+        self.assertIn("field_lengths", index.global_info)
         self.assertEqual(index.terms.next_key(), 3)
 
     def test_get_global_info(self):
         index = CoreIndex(self.test_folder)
         # Mock global info
-        index.global_info = {"avg_field_lengths": {"author": 5, "title": 10, "body": 15}}
+        index.global_info = {"field_lengths": {"author": 5, "title": 10, "body": 15}, "num_docs": 1}
 
         # Test retrieval
         global_info = index.get_global_info()
@@ -174,25 +150,26 @@ class TestCoreIndex(unittest.TestCase):
     def test_save_load(self):
         index = CoreIndex(self.test_folder)
         # Mock index
-        index.global_info["avg_field_lengths"]= {"author": 5, "title": 10, "body": 15}
+        index.global_info["field_lengths"]= {"author": 5, "title": 10, "body": 15}
+        index.global_info["num_docs"] = 1
         index.document_info.append(DocumentInfo(id=0, lengths=[5, 10, 15]))
         index.document_contents.append(DocumentContents('author', 'title', 'body'))
         index.terms.append(Term("term1", 0))
-        index.term_lookup[StrHK("term1")] = 0
+        index.term_lookup["term1"] = 0
         index.postings.append(PostingList())
 
         # Save index
         index.save()
 
         # Load index
-        loaded_index = CoreIndex.load(self.test_folder)
+        loaded_index = CoreIndex(self.test_folder)
 
         # Test loaded index
         self.assertEqual(loaded_index.global_info, index.global_info)
         self.assertEqual(loaded_index.document_info.next_key(), 1)
         self.assertEqual(loaded_index.document_contents.next_key(), 1)
         self.assertEqual(loaded_index.terms.next_key(), 1)
-        self.assertEqual(loaded_index.term_lookup[StrHK("term1")], 0)
+        self.assertEqual(loaded_index.term_lookup["term1"], 0)
         self.assertEqual(loaded_index.postings.next_key(), 1)
 
 

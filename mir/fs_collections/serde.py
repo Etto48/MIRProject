@@ -2,15 +2,13 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable, Generic, Protocol, TypeVar
 
-from mir.fs_collections.hashable_key.hashable_key import HashableKey
-
 T = TypeVar('T')
 
 
 @dataclass
 class Serde(Generic[T]):
     serialize: Callable[[T], bytes]
-    deserialize: Callable[[bytes, int | HashableKey], T]
+    deserialize: Callable[[bytes, int | str], T]
 
 
 INT_SERDE = Serde[int](

@@ -2,7 +2,6 @@ import unittest
 
 from mir.fs_collections.cached_hmap import CachedHMap
 from mir.fs_collections.file_hmap import FileHMap
-from mir.fs_collections.hashable_key.impls.str_hk import StrHK
 from mir.fs_collections.serde import INT_SERDE
 from mir.test.file_list_test_utils import setup_teardown_files
 
@@ -13,13 +12,13 @@ class TestCachedHMap(unittest.TestCase):
         fh = FileHMap(index_path, data_path, 16, 4)
         ch = CachedHMap(fh, 4, INT_SERDE)
         data = {
-            StrHK("pls"): 1,
-            StrHK("hello"): 2,
-            StrHK("this"): 3,
-            StrHK("of"): 4,
-            StrHK("it"): 5,
-            StrHK("caffettin,"): 6,
-            StrHK("lo"): 7,
+            "pls": 1,
+            "hello": 2,
+            "this": 3,
+            "of": 4,
+            "it": 5,
+            "caffettin,": 6,
+            "lo": 7,
         }
         for k, v in data.items():
             ch[k] = v
@@ -34,24 +33,24 @@ class TestCachedHMap(unittest.TestCase):
         fh = FileHMap(index_path, data_path, 16, 4)
         ch = CachedHMap(fh, 4, INT_SERDE)
         data = {
-            StrHK("pls"): 1,
-            StrHK("hello"): 2,
-            StrHK("this"): 3,
-            StrHK("of"): 4,
-            StrHK("it"): 5,
-            StrHK("caffettin,"): 6,
-            StrHK("lo"): 7,
+            "pls": 1,
+            "hello": 2,
+            "this": 3,
+            "of": 4,
+            "it": 5,
+            "caffettin,": 6,
+            "lo": 7,
         }
         for k, v in data.items():
             ch[k] = v
         new_data = {
-            StrHK("pls"): 8,
-            StrHK("hello"): 9,
-            StrHK("this"): 10,
-            StrHK("of"): 11,
-            StrHK("it"): 12,
-            StrHK("caffettin,"): 13,
-            StrHK("lo"): 14,
+            "pls": 8,
+            "hello": 9,
+            "this": 10,
+            "of": 11,
+            "it": 12,
+            "caffettin,": 13,
+            "lo": 14,
         }
         for k, v in new_data.items():
             ch[k] = v
@@ -66,13 +65,13 @@ class TestCachedHMap(unittest.TestCase):
         fh = FileHMap(index_path, data_path, 16, 4)
         ch = CachedHMap(fh, 4, INT_SERDE)
         data = {
-            StrHK("pls"): 1,
-            StrHK("hello"): 2,
-            StrHK("this"): 3,
-            StrHK("of"): 4,
-            StrHK("it"): 5,
-            StrHK("caffettin,"): 6,
-            StrHK("lo"): 7,
+            "pls": 1,
+            "hello": 2,
+            "this": 3,
+            "of": 4,
+            "it": 5,
+            "caffettin,": 6,
+            "lo": 7,
         }
         for k, v in data.items():
             ch[k] = v
