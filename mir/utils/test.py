@@ -8,7 +8,6 @@ from tqdm.auto import tqdm
 from mir import DATA_DIR
 from mir.ir.impls.bm25f_scoring import BM25FScoringFunction
 from mir.ir.impls.core_index import CoreIndex
-from mir.ir.impls.default_index import DefaultIndex
 from mir.ir.impls.neural_scoring_function import NeuralScoringFunction
 from mir.ir.ir import Ir
 from mir.utils.dataset import get_msmarco_dataset, test_dataset_to_contents
@@ -44,7 +43,7 @@ def test_pyterrier():
     topics['query'] = topics['query'].apply(preprocess_query)
 
 
-    my_ir = Ir(DefaultIndex(f"{DATA_DIR}/msmarco-default-index.pkl"), scoring_functions=[
+    my_ir = Ir(CoreIndex(f"{DATA_DIR}/msmarco-core-index"), scoring_functions=[
         (10, BM25FScoringFunction()),
         (10, NeuralScoringFunction())
     ])
@@ -57,10 +56,9 @@ def test_pyterrier():
     my_run = my_ir.get_run(my_topics, verbose=True)
     print(my_run)
 
-    eval_metrics = ["map", "ndcg", "recall"]
-    print("Running experiment")
-    results = pt.Experiment([pipeline, my_run], topics, qrels, eval_metrics)
-    print(results)
+    pt_run = pipeline.transform(topics)
+    print(pt_run)
+    
 
 if __name__ == "__main__":
     test_pyterrier()

@@ -19,7 +19,6 @@ from mir.ir.token_ir import Token, TokenLocation
 from mir.ir.tokenizer import Tokenizer
 from mir.utils.sized_generator import SizedGenerator
 
-from mir import DATA_DIR
 import json
 
 class CoreIndex(Index):
@@ -46,15 +45,17 @@ class CoreIndex(Index):
         term_lookup_file = FileHMap(os.path.join(self.basedir,"term_lookup.index"), os.path.join(self.basedir,"term_lookup.data"), page_size)
         self.term_lookup = CachedHMap(term_lookup_file, cache_size * 128, INT_SERDE)
         
-        self.global_info: dict[str, Any] = {} # serializzazione json
-        # posting lenghts: dict[int, int] 
-        self.global_info["posting_lengths"] = {}
-        self.global_info["avg_field_lengths"] = {
-            "author": 0,
-            "title": 0,
-            "body": 0
-        }
-        self.global_info["num_docs"] = 0
+        self.global_info: dict[str, Any] = {}
+        try:
+            with open(os.path.join(self.basedir, "global_info.json"), "r") as f:
+                self.global_info = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.global_info["field_lengths"] = {
+                "author": 0,
+                "title": 0,
+                "body": 0
+            }
+            self.global_info["num_docs"] = 0
 
 
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
@@ -74,7 +75,24 @@ class CoreIndex(Index):
         return self.term_lookup[StrHK(term)]
     
     def get_global_info(self) -> dict[str, Any]:
-        return self.global_info
+        if self.global_info["num_docs"] == 0:
+            return {
+                "avg_field_lengths": {
+                    "author": 0,
+                    "title": 0,
+                    "body": 0
+                },
+                "num_docs": 0
+            }
+        else:
+            return {
+                "avg_field_lengths": {
+                    "author": self.global_info["field_lengths"]["author"] / self.global_info["num_docs"],
+                    "title": self.global_info["field_lengths"]["title"] / self.global_info["num_docs"],
+                    "body": self.global_info["field_lengths"]["body"] / self.global_info["num_docs"]
+                },
+                "num_docs": self.global_info["num_docs"]
+            }
 
     def __len__(self) -> int:
         return self.global_info["num_docs"]
@@ -127,14 +145,14 @@ class CoreIndex(Index):
     def index_document(self, doc: DocumentContents, tokenizer: Tokenizer) -> None:
         doc_id = self.document_info.next_key()
 
+        if doc.__dict__.get("doc_id") is not None:
+            if doc.doc_id < doc_id:
+                return
+            
         self.global_info["num_docs"] += 1
 
         doc_info = DocumentInfo.from_document_contents(doc_id, doc, tokenizer)
         self._sum_up_lengths(doc_info.lengths)
-
-        if doc.__dict__.get("doc_id") is not None:
-            if doc.doc_id < doc_id:
-                return
             
         terms = tokenizer.tokenize_document(doc)
 
@@ -143,7 +161,6 @@ class CoreIndex(Index):
         author_term_ids = self._map_terms_to_ids(author_terms)
         title_term_ids = self._map_terms_to_ids(title_terms)
         body_term_ids = self._map_terms_to_ids(body_terms)
-        
         
         self.document_info.append(doc_info)
         self.document_contents.append(doc)
@@ -154,39 +171,12 @@ class CoreIndex(Index):
 
 
     def _sum_up_lengths(self, lengths: list[int]) -> None:
-        avg_author_length = self.global_info["avg_field_lengths"]["author"]
-        avg_title_length = self.global_info["avg_field_lengths"]["title"]
-        avg_body_length = self.global_info["avg_field_lengths"]["body"]
-
-        avg_author_length += lengths[0]
-        avg_title_length += lengths[1]
-        avg_body_length += lengths[2]
-
-        self.global_info["avg_field_lengths"]["author"] = avg_author_length
-        self.global_info["avg_field_lengths"]["title"] = avg_title_length
-        self.global_info["avg_field_lengths"]["body"] = avg_body_length
-
-
-    def _compute_avg_field_lengths(self) -> dict[str, float]:
-        avg_author_length = self.global_info["avg_field_lengths"]["author"]
-        avg_title_length = self.global_info["avg_field_lengths"]["title"]
-        avg_body_length = self.global_info["avg_field_lengths"]["body"]
-        
-        avg_author_length /= self.global_info["num_docs"]
-        avg_title_length /= self.global_info["num_docs"]
-        avg_body_length /= self.global_info["num_docs"]
-
-        avg_filed_lengths = {
-            "author": avg_author_length,
-            "title": avg_title_length,
-            "body": avg_body_length
-        }
-
-        return avg_filed_lengths
+        self.global_info["field_lengths"]["author"] += lengths[0]
+        self.global_info["field_lengths"]["title"] += lengths[1]
+        self.global_info["field_lengths"]["body"] += lengths[2]
 
     def bulk_index_documents(self, docs: SizedGenerator[DocumentContents, None, None], tokenizer: Tokenizer, verbose: bool = False) -> None:
         super().bulk_index_documents(docs, tokenizer, verbose)
-        self.global_info["avg_field_lengths"] = self._compute_avg_field_lengths()
         self.save()
 
 
@@ -199,16 +189,3 @@ class CoreIndex(Index):
         self.document_contents.write()
         self.terms.write()
         self.term_lookup.write()
-
-
-    @staticmethod
-    def load(folder: str = None) -> 'CoreIndex':
-        index = CoreIndex(folder)
-        try:
-            global_info_path = os.path.join(index.basedir, "global_info.json")
-            if os.path.exists(global_info_path):
-                with open(global_info_path, "r") as f:
-                    index.global_info = json.load(f)
-            return index
-        except FileNotFoundError:
-            return index

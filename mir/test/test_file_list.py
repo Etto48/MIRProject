@@ -195,6 +195,30 @@ class TestFileList(unittest.TestCase):
             self.assertEqual(output[i], d)
         for i, d in enumerate(data):
             self.assertEqual(fm[i], b"TEST")
+    
+    @setup_teardown_files
+    def test_file_map_persistency(self, index_path, data_path):
+        fm = FileList(index_path, data_path, 16)
+        data = [
+            b"pls",
+            b"work",
+            b"hello world",
+            b"this is a test",
+            b"of the file map class",
+            b"it should work",
+            b"caffettin, caffettin",
+            b"lo bevo, e so contento",
+        ]
+        for i, d in enumerate(data):
+            fm[i] = d
+        del fm
+
+
+        fm = FileList(index_path, data_path, 16)
+        self.assertEqual(fm.next_key(), len(data))
+        for i, d in enumerate(data):
+            self.assertEqual(fm[i], d)
+        
         
             
 if __name__ == "__main__":
