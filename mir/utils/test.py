@@ -49,13 +49,8 @@ def test_pyterrier():
     ])
     if len(my_ir.index) == 0:
         dataset = pd.read_csv(dataset_csv, sep='\t', header=None, names=['docno', 'text'], dtype={'docno': str, 'text': str})
-        dataset = dataset[:1000]
         sized_generator = test_dataset_to_contents(dataset)
         my_ir.bulk_index_documents(sized_generator, verbose=True)
-
-    for x in my_ir.index.get_postings(79):
-        print(x)
-    print()
 
     my_topics = pd.read_csv(topics_path, sep='\t', header=None, names=['query_id', 'text'], dtype={'query_id': int, 'text': str})
     my_run = my_ir.get_run(my_topics, verbose=True)
