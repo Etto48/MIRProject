@@ -7,7 +7,6 @@ from tqdm.auto import tqdm
 
 from mir import DATA_DIR
 from mir.ir.impls.bm25f_scoring import BM25FScoringFunction
-from mir.ir.impls.core_index import CoreIndex
 from mir.ir.impls.neural_scoring_function import NeuralScoringFunction
 from mir.ir.impls.sqlite_index import SqliteIndex
 from mir.ir.ir import Ir

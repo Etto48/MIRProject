@@ -89,10 +89,24 @@ class Ir:
         first_scoring_function = scoring_functions[0]
         postings_cache = {}
 
+        cumulative_durations = [0] * 7
+        phase_names = [
+            "Finding lowest doc_id",
+            "Removing empty posting lists",
+            "Getting postings",
+            "Getting global info",
+            "Getting document info",
+            "Scoring",
+            "Pushing to priority queue"
+        ]
+        total_documents = 0
+
         while True:
             # find the lowest doc_id among all the posting lists
             # doing this avoids having to iterate over all the doc_ids
             # we only take into account the doc_ids that are present in the posting lists
+            ###
+            start_time = time.time()
             lowest_doc_id = None
             empty_posting_lists = []
             for i, posting in enumerate(posting_generators):
@@ -105,12 +119,21 @@ class Ir:
             # all the posting lists are empty
             if lowest_doc_id is None:
                 break
+            else:
+                total_documents += 1
+            ###
+            cumulative_durations[0] += time.time() - start_time
 
+            start_time = time.time()
             # remove the empty posting lists
             for i in reversed(empty_posting_lists):
                 posting_generators.pop(i)
                 term_ids.pop(i)
 
+            ###
+            cumulative_durations[1] += time.time() - start_time
+
+            start_time = time.time()
             postings = []
             # get all the postings with the current doc_id, and advance their iterators
             for i, posting in enumerate(posting_generators):
@@ -118,16 +141,40 @@ class Ir:
                     next_posting = next(posting)
                     postings.append(next_posting)
             postings_cache[lowest_doc_id] = postings
+            ###
+            cumulative_durations[2] += time.time() - start_time
+
+            start_time = time.time()
             # now that we have all the info about the current document, we can score it
             global_info = self.index.get_global_info()
-            score = first_scoring_function(self.index.get_document_info(lowest_doc_id), postings, terms, **global_info)
+            ###
+            cumulative_durations[3] += time.time() - start_time
+            ###
+            start_time = time.time()
+            document_info = self.index.get_document_info(lowest_doc_id)
+            ###
+            cumulative_durations[4] += time.time() - start_time
+            ###
+            start_time = time.time()
+            score = first_scoring_function(document_info, postings, terms, **global_info)
+            ###
+            cumulative_durations[5] += time.time() - start_time
+            ###
+            start_time = time.time()
             # we add the score and doc_id to the priority queue
             popped_doc_id = priority_queue.push(lowest_doc_id, score)
             # if the priority queue is full, we remove the lowest score
             if popped_doc_id is not None:
                 del postings_cache[popped_doc_id]
+            ###
+            cumulative_durations[6] += time.time() - start_time
 
         priority_queue.finalise()
+        total_time = sum(cumulative_durations)
+        for i, duration in enumerate(cumulative_durations):
+            print(f"Duration {i}: {duration / total_time:.6%} ({phase_names[i]})")
+        print(f"Total time: {total_time}")
+        print(f"Total documents: {total_documents}")
 
         for scoring_function in scoring_functions[1:]:
             ks.pop()

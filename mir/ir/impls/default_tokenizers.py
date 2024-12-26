@@ -47,7 +47,7 @@ class DefaultTokenizer(Tokenizer):
             token_list.append(Token(tword, TokenLocation.TITLE, idx))
 
         for idx, bword in enumerate(body_list):
-            if not bword in self.stopwords: 
+            if bword not in self.stopwords: 
                 bword = self.stemmer.stem(bword)
                 token_list.append(Token(bword, TokenLocation.BODY, idx))
         

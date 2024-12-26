@@ -24,7 +24,7 @@ class SqliteIndex(Index):
         self.connection.execute("pragma synchronous = off")
         self.connection.execute(f"pragma threads = {os.cpu_count()}")
         self.connection.execute("pragma journal_mode = WAL")
-        self.connection.execute("pragma cache_size = -16000")
+        self.connection.execute(f"pragma cache_size = -{1024*1024}")
         self.connection.execute(f"pragma mmap_size = {1024*1024*1024}")
         self.connection.execute("pragma temp_store = memory")
 
@@ -55,8 +55,6 @@ class SqliteIndex(Index):
             "(term_id integer not null primary key autoincrement, "
             "term text unique not null, "
             "posting_list_len integer not null)")
-        self.connection.execute(
-            "create index if not exists term_index on terms(term)")
         
         self.connection.execute("create table if not exists global_info (key text not null primary key, value integer)")
         # add global info default values if not present
@@ -65,7 +63,11 @@ class SqliteIndex(Index):
         self.connection.execute("insert or ignore into global_info values ('total_body_len', 0)")
         self.connection.execute("insert or ignore into global_info values ('num_docs', 0)")
 
-        self.connection.commit()        
+        self.connection.execute("pragma optimize")
+
+        self.connection.commit()
+        self.global_info_dirty = True 
+        self.cached_global_info = None
     
     def get_postings(self, term_id: int) -> Generator[Posting, None, None]:
         cursor = self.connection.cursor()
@@ -100,19 +102,21 @@ class SqliteIndex(Index):
         return result[0] if result is not None else None
     
     def get_global_info(self) -> dict[str, Any]:
-        num_docs = len(self)
-        cursor = self.connection.cursor()
-        cursor.execute("select key, value from global_info")
-        global_info = cursor.fetchall()
-        global_info = {key: value for key, value in global_info}
-        return {
-            "avg_field_lengths": {
-                "author": global_info["total_author_len"] / num_docs,
-                "title": global_info["total_title_len"] / num_docs,
-                "body": global_info["total_body_len"] / num_docs
-            },
-            "num_docs": num_docs
-        }
+        if self.global_info_dirty:
+            cursor = self.connection.cursor()
+            cursor.execute("select key, value from global_info")
+            global_info = cursor.fetchall()
+            global_info = {key: value for key, value in global_info}
+            self.cached_global_info = {
+                "avg_field_lengths": {
+                    "author": global_info["total_author_len"] / global_info["num_docs"],
+                    "title": global_info["total_title_len"] / global_info["num_docs"],
+                    "body": global_info["total_body_len"] / global_info["num_docs"]
+                },
+                "num_docs": global_info["num_docs"]
+            }
+            self.global_info_dirty = False
+        return self.cached_global_info
 
     def __len__(self) -> int:
         cursor = self.connection.cursor()
@@ -176,6 +180,7 @@ class SqliteIndex(Index):
         if doc.__dict__.get("doc_id") is not None:
             if self._contains_document(doc.doc_id):
                 return
+        self.global_info_dirty = True
 
         terms = tokenizer.tokenize_document(doc)
         author_length = sum(1 for term in terms if term.where == TokenLocation.AUTHOR)
@@ -195,6 +200,11 @@ class SqliteIndex(Index):
         doc_id = self._new_document(doc, author_length, title_length, body_length)
         for term_id, location in term_ids_and_locations:
             self._update_postings(term_id, doc_id, location)
+        self.connection.commit()
+
+    def bulk_index_documents(self, docs, tokenizer, verbose = False):
+        super().bulk_index_documents(docs, tokenizer, verbose)
+        self.connection.execute("pragma optimize")
         self.connection.commit()
 
 if __name__ == "__main__":
