@@ -1,5 +1,5 @@
 import heapq
-from typing import Iterable, Sized
+from typing import Iterable, Optional, Sized
 
 class PriorityQueue(Iterable[tuple[float, int]], Sized):
     def __init__(self, max_size: int):
@@ -10,15 +10,21 @@ class PriorityQueue(Iterable[tuple[float, int]], Sized):
         self.finalised = False
         self.max_size = max_size
     
-    def push(self, doc_id: int, score: float):
+    def push(self, doc_id: int, score: float) -> Optional[int]:
         """
         Add an item with a given score to the priority queue
+
+        Returns the doc_id of the item that was popped, if any. If the new item was not added returns its doc_id.
         """
         if len(self) == self.max_size:
             if score > self.heap[0][0]:
-                heapq.heappushpop(self.heap, (score, doc_id))
+                popped = heapq.heappushpop(self.heap, (score, doc_id))
+                return popped[1]
+            else:
+                return doc_id
         else:
             heapq.heappush(self.heap, (score, doc_id))
+            return None
     
     def finalise(self):
         """

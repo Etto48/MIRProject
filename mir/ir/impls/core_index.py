@@ -26,23 +26,25 @@ class CoreIndex(Index):
 
         self.basedir = folder if folder is not None else DATA_DIR
 
-        cache_size = 1024
+        big_cache = 1024 * 128
+        medium_cache = 1024
+        small_cache = 128
         page_size = 32
 
         postings_file = FileList(os.path.join(self.basedir,"postings.index"), os.path.join(self.basedir,"postings.data"), page_size)
-        self.postings = CachedList(postings_file, cache_size, POSTING_LIST_SERDE)
+        self.postings = CachedList(postings_file, medium_cache, POSTING_LIST_SERDE)
 
         document_info_file = FileList(os.path.join(self.basedir,"document_info.index"), os.path.join(self.basedir,"document_info.data"), page_size)
-        self.document_info = CachedList(document_info_file, cache_size, DOCUMENT_INFO_SERDE)
+        self.document_info = CachedList(document_info_file, small_cache, DOCUMENT_INFO_SERDE)
 
         document_contents_file = FileList(os.path.join(self.basedir,"document_contents.index"), os.path.join(self.basedir,"document_contents.data"), page_size)
-        self.document_contents = CachedList(document_contents_file, cache_size, DOCUMENT_CONTENTS_SERDE)
+        self.document_contents = CachedList(document_contents_file, small_cache, DOCUMENT_CONTENTS_SERDE)
 
         terms_file = FileList(os.path.join(self.basedir,"terms.index"), os.path.join(self.basedir,"terms.data"), page_size)
-        self.terms = CachedList(terms_file, cache_size, TERM_SERDE)
+        self.terms = CachedList(terms_file, big_cache, TERM_SERDE)
         
         term_lookup_file = FileHMap(os.path.join(self.basedir,"term_lookup.index"), os.path.join(self.basedir,"term_lookup.data"), page_size)
-        self.term_lookup = CachedHMap(term_lookup_file, cache_size * 128, INT_SERDE)
+        self.term_lookup = CachedHMap(term_lookup_file, big_cache, INT_SERDE)
         
         self.global_info: dict[str, Any] = {}
         try:

@@ -9,6 +9,7 @@ from mir import DATA_DIR
 from mir.ir.impls.bm25f_scoring import BM25FScoringFunction
 from mir.ir.impls.core_index import CoreIndex
 from mir.ir.impls.neural_scoring_function import NeuralScoringFunction
+from mir.ir.impls.sqlite_index import SqliteIndex
 from mir.ir.ir import Ir
 from mir.utils.dataset import get_msmarco_dataset, test_dataset_to_contents
 
@@ -43,7 +44,7 @@ def test_pyterrier():
     topics['query'] = topics['query'].apply(preprocess_query)
 
 
-    my_ir = Ir(CoreIndex(f"{DATA_DIR}/msmarco-core-index"), scoring_functions=[
+    my_ir = Ir(SqliteIndex(f"{DATA_DIR}/msmarco-sqlite-index.db"), scoring_functions=[
         (10, BM25FScoringFunction()),
         (10, NeuralScoringFunction())
     ])

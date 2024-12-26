@@ -1,4 +1,5 @@
 from collections.abc import Generator
+import time
 from typing import Optional
 
 import pandas as pd
@@ -76,7 +77,6 @@ class Ir:
         ks, scoring_functions = zip(*self.scoring_functions)
         scoring_functions = list(scoring_functions)
         ks = list(ks)[::-1]
-
         
         terms = self.tokenizer.tokenize_query(query)
         term_ids = [term_id for term in terms if (
@@ -122,8 +122,11 @@ class Ir:
             global_info = self.index.get_global_info()
             score = first_scoring_function(self.index.get_document_info(lowest_doc_id), postings, terms, **global_info)
             # we add the score and doc_id to the priority queue
-            priority_queue.push(lowest_doc_id, score)
-        
+            popped_doc_id = priority_queue.push(lowest_doc_id, score)
+            # if the priority queue is full, we remove the lowest score
+            if popped_doc_id is not None:
+                del postings_cache[popped_doc_id]
+
         priority_queue.finalise()
 
         for scoring_function in scoring_functions[1:]:
