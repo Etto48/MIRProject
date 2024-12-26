@@ -1,8 +1,6 @@
-from mir.fs_collections.serde import Serde
 from mir.ir.document_contents import DocumentContents
 from mir.ir.token_ir import TokenLocation
 from mir.ir.tokenizer import Tokenizer
-import struct
 
 
 class DocumentInfo:
@@ -26,21 +24,6 @@ class DocumentInfo:
                 case _:
                     raise ValueError(f"Invalid token location {token.where}")
             tokens_for_field[field_offset] += 1
-        return DocumentInfo(id, tokens_for_field)
+        return DocumentInfo(id, tokens_for_field)        
 
-    def __ser__(self) -> bytes:
-        author = self.lengths[0]
-        title = self.lengths[1]
-        body = self.lengths[2]
-        return struct.pack('3i', author, title, body)
-
-    @staticmethod
-    def __deser__(data: bytes, id:int) -> "DocumentInfo":
-        author, title, body = struct.unpack('3i', data[:12])
-        return DocumentInfo(id, [author, title, body])            
-
-DOCUMENT_INFO_SERDE = Serde[DocumentInfo](
-    serialize=lambda doc_info: doc_info.__ser__(),
-    deserialize=lambda data, key: DocumentInfo.__deser__(data, key)
-)
     

@@ -18,11 +18,12 @@ class NeuralRelevance(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
         
-        dropout = 0
-
+        bert_embedding_size = self.model.config.hidden_size
+        hidden_size = 128
         self.similairty_head = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(768, 1, device=self.device),
+            nn.Linear(bert_embedding_size, hidden_size, device=self.device),
+            nn.ReLU(),
+            nn.Linear(hidden_size, 1, device=self.device),
             nn.Sigmoid()
         )
 
@@ -36,7 +37,7 @@ class NeuralRelevance(nn.Module):
         tokens = self.tokenizer(text, return_tensors="pt", padding=True).to(self.device)
         return tokens
 
-    def forward_queries_and_documents(self, queries: list[str], documents: list[str]):
+    def forward_queries_and_documents(self, queries: list[str], documents: list[str]) -> torch.Tensor:
         qd = []
         for q, d in zip(queries, documents):
             qd.append(q + "[SEP]" + d)
@@ -48,7 +49,7 @@ class NeuralRelevance(nn.Module):
         similarity: torch.Tensor,
         relevance: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        similarity_loss = torch.nn.functional.binary_cross_entropy(similarity, relevance / 5)
+        similarity_loss = torch.nn.functional.binary_cross_entropy_with_logits(similarity, relevance)
         mse_similarity_loss = torch.nn.functional.mse_loss(similarity, relevance / 5)
         return similarity_loss, mse_similarity_loss
 
@@ -68,7 +69,7 @@ class NeuralRelevance(nn.Module):
             sampler=torch.utils.data.RandomSampler(
                 valid, replacement=True, num_samples=bs * 50)
         )
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-5)
         best_loss = float("inf")
         best_model = None
         patience = 3
