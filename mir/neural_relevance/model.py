@@ -19,12 +19,10 @@ class NeuralRelevance(nn.Module):
             param.requires_grad = False
         
         bert_embedding_size = self.model.config.hidden_size
-        hidden_size = 128
         self.similairty_head = nn.Sequential(
-            nn.Linear(bert_embedding_size, hidden_size, device=self.device),
-            nn.ReLU(),
-            nn.Linear(hidden_size, 1, device=self.device),
-            nn.Sigmoid()
+            nn.Dropout(0.5),
+            nn.Linear(bert_embedding_size, 1, device=self.device),
+            #nn.Sigmoid()
         )
 
     def forward(self, x: dict) -> torch.Tensor:
@@ -69,7 +67,7 @@ class NeuralRelevance(nn.Module):
             sampler=torch.utils.data.RandomSampler(
                 valid, replacement=True, num_samples=bs * 50)
         )
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-5)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=5e-5, weight_decay=0.1)
         best_loss = float("inf")
         best_model = None
         patience = 3
@@ -90,7 +88,7 @@ class NeuralRelevance(nn.Module):
                 similarity_loss, mse = self.loss(similarity, relevances)
                 avg_similarity_loss += similarity_loss.item()
                 avg_mse += mse.item()
-                loss = similarity_loss
+                loss = mse
                 batches.set_postfix(
                     sim=avg_similarity_loss / (i + 1), 
                     mse=avg_mse / (i + 1))
@@ -98,7 +96,7 @@ class NeuralRelevance(nn.Module):
                 torch.nn.utils.clip_grad_norm_(self.parameters(), 1)
                 optimizer.step()
             avg_similarity_loss /= (i + 1)
-            history["train_similarity_loss"].append(avg_similarity_loss)
+            history["train_similarity_loss"].append(avg_mse)
             self.eval()
             with torch.no_grad():
                 avg_similarity_loss = 0
@@ -114,7 +112,7 @@ class NeuralRelevance(nn.Module):
                         sim=avg_similarity_loss / (i + 1), 
                         mse=avg_mse / (i + 1))
                 avg_similarity_loss /= (i + 1)
-                history["valid_similarity_loss"].append(avg_similarity_loss)
+                history["valid_similarity_loss"].append(avg_mse)
                 if avg_similarity_loss < best_loss - threshold:
                     best_loss = avg_similarity_loss
                     best_model = self.state_dict()
