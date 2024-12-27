@@ -179,15 +179,17 @@ class Ir:
         for scoring_function in scoring_functions[1:]:
             ks.pop()
             new_priority_queue = PriorityQueue(ks[-1])
-            for score, doc_id in priority_queue:
+            for score, doc_id in priority_queue.heap[:ks[-1]]:
                 postings = postings_cache[doc_id]
                 global_info = self.index.get_global_info()
                 global_info["document_content"] = self.index.get_document_contents(doc_id).body
                 global_info["query_content"] = query
                 new_score = scoring_function(self.index.get_document_info(doc_id), postings, terms, **global_info)
-                new_priority_queue.push(doc_id, new_score)
-            priority_queue = new_priority_queue
-            priority_queue.finalise()
+                # we add the old score to maintain monotonicity
+                new_priority_queue.push(doc_id, new_score + score)
+            
+            new_priority_queue.finalise()
+            priority_queue.heap = new_priority_queue.heap + priority_queue.heap[ks[-1]:]
 
         for score, doc_id in priority_queue:
             ret = self.index.get_document_contents(doc_id)
@@ -195,7 +197,7 @@ class Ir:
             ret.set_score(score)
             yield ret
 
-    def get_run(self, queries: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
+    def get_run(self, queries: pd.DataFrame, verbose: bool = False, pyterrier_compatible: bool = False) -> pd.DataFrame:
         """
         Generate a run file for the given queries in the form of a pandas DataFrame.
         You can encode it to a file using a tab separator and the to_csv method.
@@ -214,9 +216,14 @@ class Ir:
         for _, query_row in tqdm(queries.iterrows(), desc="Running queries", disable=not verbose, total=len(queries)):
             query_id = query_row["query_id"]
             query = query_row["text"]
-            for rank, doc in enumerate(self.search(query), start=1):
-                run.append(
-                    {"query_id": query_id, "Q0": "Q0", "doc_id": doc.id, "rank": rank, "score": doc.score, "run_id": self.__class__.__name__})
+            for rank, doc in enumerate(self.search(query), start=0):
+                if pyterrier_compatible:
+                    run.append(
+                        {"qid": query_id, "docid": doc.id, "docno": doc.id, "rank": rank, "score": doc.score, "query": query})
+                else:
+                    run.append(
+                        {"query_id": query_id, "Q0": "Q0", "doc_id": doc.id, "rank": rank, "score": doc.score, "run_id": self.__class__.__name__})
+
         run = pd.DataFrame(run)
         return run
 

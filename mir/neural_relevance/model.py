@@ -19,10 +19,10 @@ class NeuralRelevance(nn.Module):
             param.requires_grad = False
         
         bert_embedding_size = self.model.config.hidden_size
+        self.sep_token = "[SEP]"
         self.similairty_head = nn.Sequential(
-            nn.Dropout(0.5),
             nn.Linear(bert_embedding_size, 1, device=self.device),
-            #nn.Sigmoid()
+            nn.Sigmoid()
         )
 
     def forward(self, x: dict) -> torch.Tensor:
@@ -31,15 +31,12 @@ class NeuralRelevance(nn.Module):
         x = self.similairty_head(features)
         return x.squeeze()
 
-    def preprocess(self, text: list[str]):
-        tokens = self.tokenizer(text, return_tensors="pt", padding=True).to(self.device)
+    def preprocess(self, queries: list[str], documents: list[str]) -> dict:
+        tokens = self.tokenizer(queries, documents, return_tensors="pt", padding=True).to(self.device)
         return tokens
 
     def forward_queries_and_documents(self, queries: list[str], documents: list[str]) -> torch.Tensor:
-        qd = []
-        for q, d in zip(queries, documents):
-            qd.append(q + "[SEP]" + d)
-        x = self.preprocess(qd)
+        x = self.preprocess(queries, documents)
         return self.forward(x)
 
     def loss(
@@ -47,12 +44,12 @@ class NeuralRelevance(nn.Module):
         similarity: torch.Tensor,
         relevance: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        similarity_loss = torch.nn.functional.binary_cross_entropy_with_logits(similarity, relevance)
+        similarity_loss = torch.nn.functional.binary_cross_entropy_with_logits(similarity, relevance / 5)
         mse_similarity_loss = torch.nn.functional.mse_loss(similarity, relevance / 5)
         return similarity_loss, mse_similarity_loss
 
     def fit(self, train: MSMarcoDataset, valid: MSMarcoDataset, epochs: int = 100):
-        bs = 256
+        bs = 16
         train_loader = torch.utils.data.DataLoader(
             train,
             batch_size=bs,
@@ -67,7 +64,7 @@ class NeuralRelevance(nn.Module):
             sampler=torch.utils.data.RandomSampler(
                 valid, replacement=True, num_samples=bs * 50)
         )
-        optimizer = torch.optim.AdamW(self.parameters(), lr=5e-5, weight_decay=0.1)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=1e-4)
         best_loss = float("inf")
         best_model = None
         patience = 3
@@ -88,7 +85,7 @@ class NeuralRelevance(nn.Module):
                 similarity_loss, mse = self.loss(similarity, relevances)
                 avg_similarity_loss += similarity_loss.item()
                 avg_mse += mse.item()
-                loss = mse
+                loss = similarity_loss
                 batches.set_postfix(
                     sim=avg_similarity_loss / (i + 1), 
                     mse=avg_mse / (i + 1))
@@ -96,7 +93,7 @@ class NeuralRelevance(nn.Module):
                 torch.nn.utils.clip_grad_norm_(self.parameters(), 1)
                 optimizer.step()
             avg_similarity_loss /= (i + 1)
-            history["train_similarity_loss"].append(avg_mse)
+            history["train_similarity_loss"].append(avg_similarity_loss)
             self.eval()
             with torch.no_grad():
                 avg_similarity_loss = 0
@@ -112,7 +109,7 @@ class NeuralRelevance(nn.Module):
                         sim=avg_similarity_loss / (i + 1), 
                         mse=avg_mse / (i + 1))
                 avg_similarity_loss /= (i + 1)
-                history["valid_similarity_loss"].append(avg_mse)
+                history["valid_similarity_loss"].append(avg_similarity_loss)
                 if avg_similarity_loss < best_loss - threshold:
                     best_loss = avg_similarity_loss
                     best_model = self.state_dict()

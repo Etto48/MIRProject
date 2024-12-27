@@ -25,9 +25,6 @@ def test_pyterrier():
     else:
         indexref = pt.IndexRef.of(index_path)
     index = IndexFactory.of(indexref)
-    bm25 = pt.terrier.Retriever(index, wmodel="BM25")
-    pl2 = pt.terrier.Retriever(index, wmodel="PL2")
-    pipeline = (bm25 % 100) >> pl2
     
     topics_path = f"{DATA_DIR}/msmarco/msmarco-test2020-queries.tsv"
     qrels_path = f"{DATA_DIR}/msmarco/2020qrels-pass.txt"
@@ -44,8 +41,7 @@ def test_pyterrier():
 
 
     my_ir = Ir(SqliteIndex(f"{DATA_DIR}/msmarco-sqlite-index.db"), scoring_functions=[
-        (10, BM25FScoringFunction()),
-        (10, NeuralScoringFunction())
+        (100, BM25FScoringFunction()),
     ])
     if len(my_ir.index) == 0:
         dataset = pd.read_csv(dataset_csv, sep='\t', header=None, names=['docno', 'text'], dtype={'docno': str, 'text': str})
@@ -53,11 +49,27 @@ def test_pyterrier():
         my_ir.bulk_index_documents(sized_generator, verbose=True)
 
     my_topics = pd.read_csv(topics_path, sep='\t', header=None, names=['query_id', 'text'], dtype={'query_id': int, 'text': str})
-    my_run = my_ir.get_run(my_topics, verbose=True)
+    my_run = my_ir.get_run(my_topics, verbose=True, pyterrier_compatible=True)
     print(my_run)
 
-    pt_run = pipeline.transform(topics)
-    print(pt_run)
+    bm25 = pt.terrier.Retriever(index, wmodel="BM25")
+    pl2 = pt.terrier.Retriever(index, wmodel="PL2")
+    pyterrier_models = {
+        "BM25": bm25 % 100,
+        "BM25+PL2": (bm25 % 100) >> pl2
+    }
+    pyterrier_runs = {}
+    for model_name, model in pyterrier_models.items():
+        print(f"Running PyTerrier {model_name}")
+        pyterrier_runs[model_name] = model.transform(topics)
+        print(pyterrier_runs[model_name])
+
+    test_runs = [my_run, *pyterrier_runs.values()]
+    names = ["MyIR", *pyterrier_models.keys()]
+
+    metrics = ["map", "ndcg", "recip_rank", "P.10", "recall.10", ]
+    res = pt.Experiment(test_runs, topics, qrels, metrics, names=names)
+    print(res)
     
 
 if __name__ == "__main__":

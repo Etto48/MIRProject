@@ -74,8 +74,10 @@ class SqliteIndex(Index):
         cursor.execute(
             "select doc_id, occurrences_author, occurrences_title, occurrences_body from postings where term_id = ? "
             "order by doc_id", (term_id,))
-        for doc_id, occurrences_author, occurrences_title, occurrences_body in cursor:
-            yield Posting(doc_id, term_id, {"author": occurrences_author, "title": occurrences_title, "body": occurrences_body})
+        def row_factory(_cursor, row):
+            return Posting(row[0], term_id, {"author": row[1], "title": row[2], "body": row[3]})
+        cursor.row_factory = row_factory
+        yield from cursor
 
     def get_document_info(self, doc_id: int) -> DocumentInfo:
         cursor = self.connection.cursor()

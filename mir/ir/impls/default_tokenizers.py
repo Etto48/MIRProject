@@ -16,7 +16,8 @@ class DefaultTokenizer(Tokenizer):
             self.stopwords = frozenset(f.read().splitlines())
         
         self.stemmer = nltk.SnowballStemmer("english")
-        self.remove_punctuation = str.maketrans('','', string.punctuation)
+        
+        self.remove_punctuation = str.maketrans(string.punctuation, " " * len(string.punctuation))
 
     def tokenize_query(self, query: str) -> list[Token]:
         query_list = query.translate(self.remove_punctuation).lower().split()
