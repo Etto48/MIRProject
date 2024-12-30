@@ -7,6 +7,15 @@ from mir.ir.token_ir import Token
 
 class Tokenizer(Protocol):
     @abstractmethod
+    def get_stopwords() -> frozenset[str]:
+        """
+        Get the stopwords.
+
+        # Returns
+        - frozenset[str]: The stopwords
+        """
+
+    @abstractmethod
     def tokenize_query(self, query: str) -> list[Token]:
         """
         Tokenize a query.

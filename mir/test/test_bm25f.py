@@ -16,7 +16,7 @@ class TestBM25FScoringFunction(unittest.TestCase):
             Posting(term_id=1, doc_id=1, occurrences={"title": 2, "body": 1}),
             Posting(term_id=2, doc_id=1, occurrences={"body": 2})
         ]
-        self.query = [Term(term="term1", id=1, posting_list_len=6), Term(term="term2", id=2, posting_list_len=3)]
+        self.query = [Term(term="term1", id=1, document_frequency=6), Term(term="term2", id=2, document_frequency=3)]
         
         # Mock index
         self.index_mock = MagicMock()
@@ -38,7 +38,7 @@ class TestBM25FScoringFunction(unittest.TestCase):
         len_index = {"author": 0, "title": 1, "body": 2}
         postings_lookup = {p.term_id: p for p in self.postings}
         for q in self.query:
-            idf = math.log(self.index_mock.get_global_info()["num_docs"] / q.info["posting_list_len"])
+            idf = math.log(self.index_mock.get_global_info()["num_docs"] / q.info["document_frequency"])
             p = postings_lookup.get(q.id)
             tf = 0
             for field, o in p.occurrences.items():

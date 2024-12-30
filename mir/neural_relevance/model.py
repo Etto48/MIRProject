@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-import tiktoken
 from tqdm.auto import tqdm
 import transformers
 
@@ -13,17 +12,18 @@ class NeuralRelevance(nn.Module):
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
         
-        self.tokenizer = transformers.BertTokenizer.from_pretrained("bert-base-uncased")
-        self.model = transformers.BertModel.from_pretrained("bert-base-uncased").to(self.device)
+        model_name = "bert-large-uncased"
+        self.tokenizer = transformers.BertTokenizer.from_pretrained(model_name)
+        self.model = transformers.BertModel.from_pretrained(model_name).to(self.device)
         for param in self.model.parameters():
             param.requires_grad = False
         
         bert_embedding_size = self.model.config.hidden_size
-        self.sep_token = "[SEP]"
         self.similairty_head = nn.Sequential(
             nn.Linear(bert_embedding_size, 1, device=self.device),
             nn.Sigmoid()
-        )
+        ).to(self.device)
+        
 
     def forward(self, x: dict) -> torch.Tensor:
         x = self.model(**x).last_hidden_state
@@ -43,10 +43,10 @@ class NeuralRelevance(nn.Module):
         self,
         similarity: torch.Tensor,
         relevance: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        similarity_loss = torch.nn.functional.binary_cross_entropy_with_logits(similarity, relevance / 5)
+    ):
+        ce_similarity_loss = torch.nn.functional.binary_cross_entropy(similarity, relevance / 5)
         mse_similarity_loss = torch.nn.functional.mse_loss(similarity, relevance / 5)
-        return similarity_loss, mse_similarity_loss
+        return ce_similarity_loss, mse_similarity_loss, ce_similarity_loss
 
     def fit(self, train: MSMarcoDataset, valid: MSMarcoDataset, epochs: int = 100):
         bs = 16
@@ -64,54 +64,62 @@ class NeuralRelevance(nn.Module):
             sampler=torch.utils.data.RandomSampler(
                 valid, replacement=True, num_samples=bs * 50)
         )
-        optimizer = torch.optim.AdamW(self.parameters(), lr=1e-4)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=1e-4, weight_decay=1)
         best_loss = float("inf")
         best_model = None
         patience = 3
         threshold = 0.001
         epochs_without_improvement = 0
 
-        history = {"train_similarity_loss": [], "valid_similarity_loss": []}
+        history = {
+            "train_ce": [], "valid_ce": [],
+            "train_mse": [], "valid_mse": [],
+        }
 
         for epoch in range(epochs):
             self.train()
-            avg_similarity_loss = 0
+            avg_ce = 0
             avg_mse = 0
             batches = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs} (train)", total=len(train_loader))
             for i, (queries, docs, relevances) in enumerate(batches):
                 relevances = relevances.to(self.device)
                 optimizer.zero_grad()
                 similarity = self.forward_queries_and_documents(queries, docs)
-                similarity_loss, mse = self.loss(similarity, relevances)
-                avg_similarity_loss += similarity_loss.item()
+                ce, mse, loss = self.loss(similarity, relevances)
+                avg_ce += ce.item()
                 avg_mse += mse.item()
-                loss = similarity_loss
                 batches.set_postfix(
-                    sim=avg_similarity_loss / (i + 1), 
+                    ce=avg_ce / (i + 1), 
                     mse=avg_mse / (i + 1))
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.parameters(), 1)
                 optimizer.step()
-            avg_similarity_loss /= (i + 1)
-            history["train_similarity_loss"].append(avg_similarity_loss)
+            avg_ce /= (i + 1)
+            avg_mse /= (i + 1)
+            history["train_ce"].append(avg_ce)
+            history["train_mse"].append(avg_mse)
             self.eval()
             with torch.no_grad():
-                avg_similarity_loss = 0
+                avg_ce = 0
                 avg_mse = 0
+                avg_loss = 0
                 batches = tqdm(valid_loader, desc=f"Epoch {epoch + 1}/{epochs} (valid)", total=len(valid_loader))
                 for i, (queries, docs, relevances) in enumerate(batches):
                     relevances = relevances.to(self.device)
                     similarity = self.forward_queries_and_documents(queries, docs)
-                    similarity_loss, mse = self.loss(similarity, relevances)
-                    avg_similarity_loss += similarity_loss.item()
+                    ce, mse, loss = self.loss(similarity, relevances)
+                    avg_ce += ce.item()
                     avg_mse += mse.item()
+                    avg_loss += loss.item()
                     batches.set_postfix(
-                        sim=avg_similarity_loss / (i + 1), 
+                        ce=avg_ce / (i + 1),
                         mse=avg_mse / (i + 1))
-                avg_similarity_loss /= (i + 1)
-                history["valid_similarity_loss"].append(avg_similarity_loss)
-                if avg_similarity_loss < best_loss - threshold:
-                    best_loss = avg_similarity_loss
+                avg_ce /= (i + 1)
+                avg_mse /= (i + 1)
+                history["valid_ce"].append(avg_ce)
+                history["valid_mse"].append(avg_mse)
+                if avg_loss < best_loss - threshold:
+                    best_loss = avg_loss
                     best_model = self.state_dict()
                     epochs_without_improvement = 0
                 else:
@@ -138,8 +146,15 @@ if __name__ == "__main__":
     try:
         history = model.fit(train, valid)
         model.save(f"{DATA_DIR}/neural_relevance.pth")
-        plt.plot(history["train_similarity_loss"], label="Train Similarity Loss")
-        plt.plot(history["valid_similarity_loss"], label="Valid Similarity Loss")
+        plt.subplot(1, 2, 1)
+        plt.plot(history["train_ce"], label="train")
+        plt.plot(history["valid_ce"], label="valid")
+        plt.title("Cross Entropy Loss")
+        plt.legend()
+        plt.subplot(1, 2, 2)
+        plt.plot(history["train_mse"], label="train")
+        plt.plot(history["valid_mse"], label="valid")
+        plt.title("Mean Squared Error Loss")
         plt.legend()
         plt.show()
     except KeyboardInterrupt:

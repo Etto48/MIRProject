@@ -10,14 +10,5 @@ class TokenLocation(Enum) :
 
 @dataclass
 class Token:
-    """
-    Token class is just a dataclass to keep track of the
-    position of the word in a given document and wether it's
-    present in the author's name, title or in the 
-    body (lyrics) of the song
-    """
-    token: str
-    where: TokenLocation
-    position: int
-
-
+    text: str
+    location: TokenLocation

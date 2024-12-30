@@ -25,9 +25,10 @@ class BM25FScoringFunction(ScoringFunction):
 
     def _rsv(self, term: Term, document: DocumentInfo, num_docs: int, postings_dict: dict[int, Posting], avg_field_lengths: dict[str, int]) -> float:
         tfd = self._wtf(term, document, postings_dict, avg_field_lengths)
-        
+        idf = math.log(num_docs / term.info['document_frequency'])
+
         if tfd > 0:
-            return (tfd / (self.k1 + tfd)) * math.log(num_docs / term.info['posting_list_len'])
+            return (tfd / (self.k1 + tfd)) * idf
         return 0.0
 
     def _wtf(self, term: Term, document: DocumentInfo, postings_dict: dict[int, Posting], avg_field_lengths: dict[str, int]) -> float:

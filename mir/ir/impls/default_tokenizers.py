@@ -1,6 +1,7 @@
 import string
 import nltk
 import nltk.corpus
+import unidecode
 from mir import DATA_DIR
 from mir.ir.document_contents import DocumentContents
 from mir.ir.tokenizer import Tokenizer
@@ -16,40 +17,42 @@ class DefaultTokenizer(Tokenizer):
             self.stopwords = frozenset(f.read().splitlines())
         
         self.stemmer = nltk.SnowballStemmer("english")
-        
         self.remove_punctuation = str.maketrans(string.punctuation, " " * len(string.punctuation))
+        self.separate_numbers = str.maketrans({key: f" {key} " for key in string.digits})
+    
+    def get_stopwords(self) -> frozenset[str]:
+        return self.stopwords
+
+    def preprocess(self, text: str):
+        # normalize unicode
+        text = unidecode.unidecode(text, errors="replace", replace_str=" ")
+        # replace punctuation with space
+        text = text.translate(self.remove_punctuation).lower()
+        # separate numbers with a space
+        text = text.translate(self.separate_numbers)
+        # split text into words
+        words = text.split()
+        # remove stopwords
+        words = [word for word in words if word not in self.stopwords]
+        # stem words
+        words: list[str] = [self.stemmer.stem(word) for word in words]
+        return words
+
 
     def tokenize_query(self, query: str) -> list[Token]:
-        query_list = query.translate(self.remove_punctuation).lower().split()
-        token_list = []
-
-        for idx, word in enumerate(query_list) :
-            # No stopwords removal for query
-            word = self.stemmer.stem(word)
-            token_list.append(Token(word, TokenLocation.QUERY, idx)) 
+        query_list = self.preprocess(query)
+        token_list = [Token(word, TokenLocation.QUERY) for word in query_list]
         
         return token_list
 
     def tokenize_document(self, doc: DocumentContents) -> list[Token]:
-        author_list = doc.author.translate(self.remove_punctuation).lower().split()
-        title_list = doc.title.translate(self.remove_punctuation).lower().split()
-        body_list = doc.body.translate(self.remove_punctuation).lower().split()
+        author_list = self.preprocess(doc.author)
+        title_list = self.preprocess(doc.title)
+        body_list = self.preprocess(doc.body)
         
-        token_list = []
-
-        for idx, aword in enumerate(author_list):
-            # No Stopwords removal for author
-            aword = self.stemmer.stem(aword)
-            token_list.append(Token(aword, TokenLocation.AUTHOR, idx))
-
-        for idx, tword in enumerate(title_list):
-            # No Stopwords removal for title
-            tword = self.stemmer.stem(tword)
-            token_list.append(Token(tword, TokenLocation.TITLE, idx))
-
-        for idx, bword in enumerate(body_list):
-            if bword not in self.stopwords: 
-                bword = self.stemmer.stem(bword)
-                token_list.append(Token(bword, TokenLocation.BODY, idx))
+        token_list = \
+            [Token(aword, TokenLocation.AUTHOR) for aword in author_list] + \
+            [Token(tword, TokenLocation.TITLE) for tword in title_list] + \
+            [Token(bword, TokenLocation.BODY) for bword in body_list]
         
         return token_list

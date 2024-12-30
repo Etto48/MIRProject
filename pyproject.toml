@@ -2,7 +2,7 @@
 name = "mir"
 version = "0.1.0"
 description = "MIR Project"
-dependencies = [ "pandas", "tqdm", "iprogress", "ipywidgets", "unidecode", "kaggle", "GitPython", "nltk", "more_itertools", "python-terrier", "sentence_transformers", "xformers", "tiktoken",]
+dependencies = [ "pandas", "tqdm", "iprogress", "ipywidgets", "unidecode", "nltk", "more_itertools", "python-terrier", "torch"]
 [[project.authors]]
 name = "Ettore Ricci"
 

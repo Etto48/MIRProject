@@ -24,6 +24,12 @@ class NeuralScoringFunction(ScoringFunction):
             score = self.model.forward_queries_and_documents([query_content], [document_content])
         return score.item()
     
+    def batched_call(self, document_contents: list[str], query_contents: str) -> list[float]:
+        scores = []
+        with torch.no_grad():
+            scores = self.model.forward_queries_and_documents([query_contents]*len(document_contents), document_contents)
+        return scores.tolist()
+    
 if __name__ == "__main__":
     valid = MSMarcoDataset.load("valid")
     scoring_function = NeuralScoringFunction()

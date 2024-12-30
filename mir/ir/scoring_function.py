@@ -1,4 +1,4 @@
-from typing import Any, Protocol
+from typing import Any, Callable, Optional, Protocol
 
 from mir.ir.document_info import DocumentInfo
 from mir.ir.posting import Posting
@@ -6,6 +6,7 @@ from mir.ir.term import Term
 
 
 class ScoringFunction(Protocol):
+    batched_call: Optional[Callable[["ScoringFunction",list[str],str], list[float]]] = None
     def __call__(self, document_info: DocumentInfo, postings: list[Posting], query: list[Term], **kwargs: dict[str, Any]) -> float:
         """
         Score a document based on the postings and the query.

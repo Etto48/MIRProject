@@ -1,5 +1,7 @@
+import argparse
 import os
 import re
+from typing import Literal
 import pyterrier as pt
 from pyterrier import IndexFactory
 import pandas as pd
@@ -10,10 +12,10 @@ from mir.ir.impls.bm25f_scoring import BM25FScoringFunction
 from mir.ir.impls.neural_scoring_function import NeuralScoringFunction
 from mir.ir.impls.sqlite_index import SqliteIndex
 from mir.ir.ir import Ir
-from mir.utils.dataset import get_msmarco_dataset, test_dataset_to_contents
+from mir.utils.dataset import get_msmarco_dataset, msmarco_dataset_to_contents
 
 
-def test_pyterrier():
+def evaluate_ir(mode: Literal["validation", "test"] = "validation"):
     get_msmarco_dataset()
     dataset_csv = f"{DATA_DIR}/msmarco/collection.tsv"
     indexer = pt.terrier.IterDictIndexer(f"{DATA_DIR}/msmarco-pyterrier-index")
@@ -26,8 +28,13 @@ def test_pyterrier():
         indexref = pt.IndexRef.of(index_path)
     index = IndexFactory.of(indexref)
     
-    topics_path = f"{DATA_DIR}/msmarco/msmarco-test2020-queries.tsv"
-    qrels_path = f"{DATA_DIR}/msmarco/2020qrels-pass.txt"
+    if mode == "validation":
+        topics_path = f"{DATA_DIR}/msmarco/msmarco-test2019-queries.tsv"
+        qrels_path = f"{DATA_DIR}/msmarco/2019qrels-pass.txt"
+    else:
+        topics_path = f"{DATA_DIR}/msmarco/msmarco-test2020-queries.tsv"
+        qrels_path = f"{DATA_DIR}/msmarco/2020qrels-pass.txt"
+
     topics = pd.read_csv(topics_path, sep='\t', header=None, names=['qid', 'query'], dtype={'qid': str, 'query': str})
     qrels = pd.read_csv(qrels_path, sep=' ', header=None, names=['qid', 'Q0', 'docno', 'relevance'], dtype={'qid': str, 'Q0': str, 'docno': str, 'relevance': int})
     
@@ -41,11 +48,12 @@ def test_pyterrier():
 
 
     my_ir = Ir(SqliteIndex(f"{DATA_DIR}/msmarco-sqlite-index.db"), scoring_functions=[
-        (100, BM25FScoringFunction()),
+        (100, BM25FScoringFunction(1.2, 0.8)),
+        (10, NeuralScoringFunction())
     ])
     if len(my_ir.index) == 0:
         dataset = pd.read_csv(dataset_csv, sep='\t', header=None, names=['docno', 'text'], dtype={'docno': str, 'text': str})
-        sized_generator = test_dataset_to_contents(dataset)
+        sized_generator = msmarco_dataset_to_contents(dataset)
         my_ir.bulk_index_documents(sized_generator, verbose=True)
 
     my_topics = pd.read_csv(topics_path, sep='\t', header=None, names=['query_id', 'text'], dtype={'query_id': int, 'text': str})
@@ -73,4 +81,7 @@ def test_pyterrier():
     
 
 if __name__ == "__main__":
-    test_pyterrier()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", type=str, default="validation", choices=["validation", "test"])
+    args = parser.parse_args()
+    evaluate_ir(args.mode)

@@ -63,20 +63,20 @@ class DefaultIndex(Index):
 
     def index_document(self, doc: DocumentContents, tokenizer: Tokenizer) -> None:
         terms = tokenizer.tokenize_document(doc)
-        author_length = sum(1 for term in terms if term.where == TokenLocation.AUTHOR)
-        title_length = sum(1 for term in terms if term.where == TokenLocation.TITLE)
-        body_length = sum(1 for term in terms if term.where == TokenLocation.BODY)
+        author_length = sum(1 for term in terms if term.location == TokenLocation.AUTHOR)
+        title_length = sum(1 for term in terms if term.location == TokenLocation.TITLE)
+        body_length = sum(1 for term in terms if term.location == TokenLocation.BODY)
         self.total_field_lengths["author"] += author_length
         self.total_field_lengths["title"] += title_length
         self.total_field_lengths["body"] += body_length
         term_ids = []
         for term in terms:
-            if term.token not in self.term_lookup:
+            if term.text not in self.term_lookup:
                 term_id = len(self.terms)
-                self.terms.append(Term(term.token, term_id))
-                self.term_lookup[term.token] = term_id
+                self.terms.append(Term(term.text, term_id))
+                self.term_lookup[term.text] = term_id
             else:
-                term_id = self.term_lookup[term.token]
+                term_id = self.term_lookup[term.text]
             term_ids.append(term_id)
         doc_id = len(self.document_info)
         self.document_info.append(DocumentInfo.from_document_contents(doc_id, doc, tokenizer))

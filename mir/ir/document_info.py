@@ -14,7 +14,7 @@ class DocumentInfo:
         tokens = tokenizer.tokenize_document(doc)
         tokens_for_field = [0,0,0]
         for token in tokens:
-            match token.where:
+            match token.location:
                 case TokenLocation.AUTHOR:
                     field_offset = 0
                 case TokenLocation.TITLE:
@@ -22,7 +22,7 @@ class DocumentInfo:
                 case TokenLocation.BODY:
                     field_offset = 2
                 case _:
-                    raise ValueError(f"Invalid token location {token.where}")
+                    raise ValueError(f"Invalid token location {token.location}")
             tokens_for_field[field_offset] += 1
         return DocumentInfo(id, tokens_for_field)        
 

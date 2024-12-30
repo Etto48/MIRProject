@@ -1,5 +1,6 @@
 import inspect
 import json
+import tomllib
 import os
 import time
 from typing import Optional
@@ -8,6 +9,10 @@ from mir import PROJECT_DIR, DATA_DIR
 EXCLUDE_MODULES = [
     "mir.scripts",
     "mir.test",
+]
+
+INCLUDE_MODULES = [
+    "mir.scripts.demo",
 ]
 
 
@@ -215,20 +220,12 @@ def project_deps_to_notebook_code(src_dir: str) -> list[str]:
 
     project_dir = os.path.dirname(src_dir)
 
-    with open(f"{project_dir}/pyproject.toml", "r") as f:
-        lines = f.readlines()
-    deps = []
-    in_deps = False
-    for line in lines:
-        if line.startswith("dependencies = ["):
-            in_deps = True
-        elif in_deps and "]" in line:
-            in_deps = False
-        elif in_deps and line.strip() != "":
-            deps.append(line.strip().replace(
-                "\"", "").replace(",", "").replace("\'", ""))
+    with open(f"{project_dir}/pyproject.toml", "rb") as f:
+        pyproject = tomllib.load(f)
+    
+    deps = pyproject["project"]["dependencies"]
 
-    return ["# install dependencies"] + [f"!pip3 install {" ".join(deps)}"]
+    return ["# install dependencies"] + [f"%pip3 install {" ".join(deps)}"]
 
 
 def c(s: str, color: str, tabs: int = 0) -> str:
@@ -288,7 +285,7 @@ def list_modules(src_dir: str) -> tuple[list[str], dict[str, str]]:
     indices_to_remove = []
     for i, module in enumerate(src_modules):
         for e in EXCLUDE_MODULES:
-            if module.startswith(e):
+            if module.startswith(e) and module not in INCLUDE_MODULES:
                 indices_to_remove.append(i)
                 print(c(module, "gray", 1))
                 break
@@ -399,9 +396,10 @@ def order_docs(
         doc_files: list[str]) -> tuple[list[tuple[Optional[str], str]], list[str]]:
     module_index_hashmap = {module: i for i, module in enumerate(
         cell_modules) if module is not None}
+    module_index_hashmap[None] = -1
     # sort the documentation files based on the order of the modules
     sorted_doc_text_for_files, sorted_doc_files = zip(
-        *sorted(zip(doc_text_for_files, doc_files), key=lambda x: module_index_hashmap.get(x[0][0], 0))
+        *sorted(zip(doc_text_for_files, doc_files), key=lambda x: module_index_hashmap[x[0][0]])
     )
     return sorted_doc_text_for_files, sorted_doc_files
 

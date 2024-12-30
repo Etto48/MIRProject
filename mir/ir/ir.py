@@ -1,4 +1,5 @@
 from collections.abc import Generator
+import string
 import time
 from typing import Optional
 
@@ -75,12 +76,12 @@ class Ir:
         assert len(self.scoring_functions) > 0, "At least one scoring function must be provided"
 
         ks, scoring_functions = zip(*self.scoring_functions)
-        scoring_functions = list(scoring_functions)
-        ks = list(ks)[::-1]
+        scoring_functions: list[ScoringFunction] = list(scoring_functions)
+        ks: list[int] = list(ks)[::-1]
         
         terms = self.tokenizer.tokenize_query(query)
         term_ids = [term_id for term in terms if (
-            term_id := self.index.get_term_id(term.token)) is not None]
+            term_id := self.index.get_term_id(term.text)) is not None]
         terms = [self.index.get_term(term_id) for term_id in term_ids]
         posting_generators = [
             peekable(self.index.get_postings(term_id)) for term_id in term_ids]
@@ -89,24 +90,10 @@ class Ir:
         first_scoring_function = scoring_functions[0]
         postings_cache = {}
 
-        cumulative_durations = [0] * 7
-        phase_names = [
-            "Finding lowest doc_id",
-            "Removing empty posting lists",
-            "Getting postings",
-            "Getting global info",
-            "Getting document info",
-            "Scoring",
-            "Pushing to priority queue"
-        ]
-        total_documents = 0
-
         while True:
             # find the lowest doc_id among all the posting lists
             # doing this avoids having to iterate over all the doc_ids
             # we only take into account the doc_ids that are present in the posting lists
-            ###
-            start_time = time.time()
             lowest_doc_id = None
             empty_posting_lists = []
             for i, posting in enumerate(posting_generators):
@@ -119,21 +106,12 @@ class Ir:
             # all the posting lists are empty
             if lowest_doc_id is None:
                 break
-            else:
-                total_documents += 1
-            ###
-            cumulative_durations[0] += time.time() - start_time
 
-            start_time = time.time()
             # remove the empty posting lists
             for i in reversed(empty_posting_lists):
                 posting_generators.pop(i)
                 term_ids.pop(i)
 
-            ###
-            cumulative_durations[1] += time.time() - start_time
-
-            start_time = time.time()
             postings = []
             # get all the postings with the current doc_id, and advance their iterators
             for i, posting in enumerate(posting_generators):
@@ -141,55 +119,41 @@ class Ir:
                     next_posting = next(posting)
                     postings.append(next_posting)
             postings_cache[lowest_doc_id] = postings
-            ###
-            cumulative_durations[2] += time.time() - start_time
-
-            start_time = time.time()
             # now that we have all the info about the current document, we can score it
             global_info = self.index.get_global_info()
-            ###
-            cumulative_durations[3] += time.time() - start_time
-            ###
-            start_time = time.time()
             document_info = self.index.get_document_info(lowest_doc_id)
-            ###
-            cumulative_durations[4] += time.time() - start_time
-            ###
-            start_time = time.time()
             score = first_scoring_function(document_info, postings, terms, **global_info)
-            ###
-            cumulative_durations[5] += time.time() - start_time
-            ###
-            start_time = time.time()
             # we add the score and doc_id to the priority queue
             popped_doc_id = priority_queue.push(lowest_doc_id, score)
             # if the priority queue is full, we remove the lowest score
             if popped_doc_id is not None:
                 del postings_cache[popped_doc_id]
-            ###
-            cumulative_durations[6] += time.time() - start_time
-
+        
         priority_queue.finalise()
-        total_time = sum(cumulative_durations)
-        for i, duration in enumerate(cumulative_durations):
-            print(f"Duration {i}: {duration / total_time:.6%} ({phase_names[i]})")
-        print(f"Total time: {total_time}")
-        print(f"Total documents: {total_documents}")
 
         for scoring_function in scoring_functions[1:]:
             ks.pop()
-            new_priority_queue = PriorityQueue(ks[-1])
-            for score, doc_id in priority_queue.heap[:ks[-1]]:
-                postings = postings_cache[doc_id]
-                global_info = self.index.get_global_info()
-                global_info["document_content"] = self.index.get_document_contents(doc_id).body
-                global_info["query_content"] = query
-                new_score = scoring_function(self.index.get_document_info(doc_id), postings, terms, **global_info)
-                # we add the old score to maintain monotonicity
-                new_priority_queue.push(doc_id, new_score + score)
+            resorted_documents = []
+            if scoring_function.batched_call is not None:
+                scores: list[float] = scoring_function.batched_call(
+                    [self.index.get_document_contents(doc_id).body for _, doc_id in priority_queue.heap[:ks[-1]]],
+                    query
+                )
+                for i, (score, doc_id) in enumerate(priority_queue.heap[:ks[-1]]):
+                    new_score = scores[i]
+                    resorted_documents.append((new_score + score, doc_id))
+            else:
+                for score, doc_id in priority_queue.heap[:ks[-1]]:
+                    postings = postings_cache[doc_id]
+                    global_info = self.index.get_global_info()
+                    global_info["document_content"] = self.index.get_document_contents(doc_id).body
+                    global_info["query_content"] = query
+                    new_score = scoring_function(self.index.get_document_info(doc_id), postings, terms, **global_info)
+                    # we add the old score to maintain monotonicity
+                    resorted_documents.append((new_score + score, doc_id))
             
-            new_priority_queue.finalise()
-            priority_queue.heap = new_priority_queue.heap + priority_queue.heap[ks[-1]:]
+            resorted_documents.sort(key=lambda x: x[0], reverse=True)
+            priority_queue.heap = resorted_documents + priority_queue.heap[ks[-1]:]
 
         for score, doc_id in priority_queue:
             ret = self.index.get_document_contents(doc_id)
@@ -210,6 +174,7 @@ class Ir:
         # Returns
         - pd.DataFrame: The run file. It has the columns 
         "query_id", "Q0", "document_no", "rank", "score", "run_id".
+        If pyterrier_compatible is True, the columns are "qid", "docid", "docno", "rank", "score", "query".
         """
         
         run = []
@@ -226,45 +191,3 @@ class Ir:
 
         run = pd.DataFrame(run)
         return run
-
-
-if __name__ == "__main__":
-    from mir.utils.dataset import dataset_to_contents
-    from mir.utils.dataset import get_dataset
-    from mir.utils.decorators import profile
-
-    impls = [
-        Ir()
-    ]
-    ds = get_dataset(verbose=True)
-
-    for impl in impls:
-        ir = impl
-
-        @profile
-        def index():
-            docs = dataset_to_contents(ds)
-            ir.bulk_index_documents(docs, verbose=True)
-
-        (_, index_time) = index()
-
-        @profile
-        def run():
-            queries = pd.DataFrame({
-                "query_id": [0, 1, 2, 3, 4, 5],
-                "text": [
-                    "never gonna give you up",
-                    "i'll never gonna dance again",
-                    "wake me up",
-                    "i was made for loving you",
-                    "take on me",
-                    "i want to break free",
-                ]
-            })
-            return ir.get_run(queries, verbose=True)
-
-        (run_file, run_rime) = run()
-
-        print(
-            f"{impl.__name__} index time: "
-            f"{index_time:.3f}s, run time: {run_rime:.3f}s")
