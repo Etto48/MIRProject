@@ -1,3 +1,5 @@
+import os
+import requests
 import torch
 from torch import nn
 from tqdm.auto import tqdm
@@ -137,6 +139,21 @@ class NeuralRelevance(nn.Module):
         model = NeuralRelevance()
         model.load_state_dict(torch.load(path, map_location=model.device, weights_only=True))
         return model
+    
+    @staticmethod
+    def from_pretrained():
+        if not os.path.exists(f"{DATA_DIR}/neural_relevance.pt"):
+            url = "https://huggingface.co/Etto48/MIRProject/resolve/main/neural_relevance.pt"
+            weights_request = requests.get(url)
+            weights_request.raise_for_status()
+            with tqdm(total=int(weights_request.headers["Content-Length"]), unit="B", unit_scale=True, desc="Downloading weights") as pbar:
+                with open(f"{DATA_DIR}/neural_relevance.pt", "wb") as f:
+                    for chunk in weights_request.iter_content(chunk_size=1024):
+                        f.write(chunk)
+                        pbar.update(len(chunk))
+        model = NeuralRelevance.load(f"{DATA_DIR}/neural_relevance.pt")
+        return model
+
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
@@ -145,7 +162,7 @@ if __name__ == "__main__":
     model = NeuralRelevance()
     try:
         history = model.fit(train, valid)
-        model.save(f"{DATA_DIR}/neural_relevance.pth")
+        model.save(f"{DATA_DIR}/neural_relevance.pt")
         plt.subplot(1, 2, 1)
         plt.plot(history["train_ce"], label="train")
         plt.plot(history["valid_ce"], label="valid")

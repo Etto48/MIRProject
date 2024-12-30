@@ -14,7 +14,7 @@ from mir.neural_relevance.dataset import MSMarcoDataset
 class NeuralScoringFunction(ScoringFunction):
     def __init__(self):
         # Load the model
-        self.model = NeuralRelevance.load(f"{DATA_DIR}/neural_relevance.pth")
+        self.model = NeuralRelevance.from_pretrained()
         self.model.eval()
 
     def __call__(self, document: DocumentInfo, postings: list[Posting], query: list[Term], *, document_content: str, query_content: str, **kwargs) -> float:
