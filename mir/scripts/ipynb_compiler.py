@@ -184,7 +184,7 @@ def code_to_cell(text: str | list[str]) -> dict:
             "autoscroll": False
         },
         "outputs": [],
-        "source": text.split("\n") if isinstance(text, str) else text
+        "source": [line + "\n" for line in text.split("\n")] if isinstance(text, str) else text
     }
 
 
@@ -201,14 +201,14 @@ def doc_to_cell(text: str | list[str]) -> dict:
     return {
         "cell_type": "markdown",
         "metadata": {},
-        "source": text.split("\n") if isinstance(text, str) else text
+        "source": [line + "\n" for line in text.split("\n")] if isinstance(text, str) else text
     }
 
 
 def project_deps_to_notebook_code(src_dir: str) -> list[str]:
     """
     Convert the dependencies of a project to a list of notebook shell commands.
-    e.g. `!pip3 install pandas
+    e.g. `%pip install pandas
 
     # Parameters
     - src_dir (str): The source directory of the project. 
@@ -225,7 +225,7 @@ def project_deps_to_notebook_code(src_dir: str) -> list[str]:
     
     deps = pyproject["project"]["dependencies"]
 
-    return ["# install dependencies"] + [f"%pip3 install {" ".join(deps)}"]
+    return ["# install dependencies\n"] + [f"%pip install {" ".join(deps)}\n"]
 
 
 def c(s: str, color: str, tabs: int = 0) -> str:
@@ -355,10 +355,10 @@ def compile_python_script(sorted_text_for_files: list[str]) -> str:
 def compile_code_cells(sorted_text_for_files: list[str]) -> list[dict]:
     dep_cell = code_to_cell(project_deps_to_notebook_code(src_dir))
     file_cell = code_to_cell([
-        "# define __file__ and set env variable",
-        "import os",
-        f"__file__ = os.path.abspath('colab.ipynb')",
-        "os.environ['MIR_NOTEBOOK'] = __file__",
+        "# define __file__ and set env variable\n",
+        "import os\n",
+        f"__file__ = os.path.abspath('colab.ipynb')\n",
+        "os.environ['MIR_NOTEBOOK'] = __file__\n",
     ])
     cells = [code_to_cell(text) for text in sorted_text_for_files]
     cells = remove_empty_cells(cells)

@@ -1,6 +1,7 @@
 from collections.abc import Generator
 import os
 import sqlite3
+import sys
 from typing import Any, Optional
 
 import psutil
@@ -21,10 +22,16 @@ class SqliteIndex(Index):
         self.connection = sqlite3.connect(
             path if path is not None else ":memory:", 
             check_same_thread=False, 
-            cached_statements=1024, 
-            autocommit=False)
+            cached_statements=1024,)
         
-        self.connection.autocommit = True
+        assert sys.version_info.major == 3, "Python 2 is not supported"
+        assert sys.version_info.minor >= 10, "Python <3.10 is not supported"
+        
+        legacy_mode = sys.version_info.minor == 10
+        if legacy_mode:
+            self.isolation_level = None
+        else:
+            self.connection.autocommit = True
         
         self.connection.execute("pragma synchronous = off")
         self.connection.execute(f"pragma threads = {os.cpu_count()}")
@@ -34,7 +41,11 @@ class SqliteIndex(Index):
         self.connection.execute(f"pragma mmap_size = {1024*1024*1024 * 16}")
         self.connection.execute("pragma temp_store = memory")
 
-        self.connection.autocommit = False
+        if legacy_mode:
+            self.connection.isolation_level = "DEFERRED"
+        else:
+            self.connection.autocommit = False
+
 
         self.connection.execute(
             "create table if not exists postings "

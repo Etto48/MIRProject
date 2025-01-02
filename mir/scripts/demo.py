@@ -13,7 +13,7 @@ from mir.ir.ir import Ir
 from mir.utils.dataset import get_msmarco_dataset, msmarco_dataset_to_contents
 
 
-get_msmarco_dataset()
+get_msmarco_dataset(verbose=True)
 dataset_csv = f"{DATA_DIR}/msmarco/collection.tsv"
 indexer = pt.terrier.IterDictIndexer(f"{DATA_DIR}/msmarco-pyterrier-index")
 index_path = f"{DATA_DIR}/msmarco-pyterrier-index/data.properties"
@@ -52,10 +52,10 @@ my_topics = pd.read_csv(topics_path, sep='\t', header=None, names=['query_id', '
 my_run = my_ir.get_run(my_topics, verbose=True, pyterrier_compatible=True)
 
 bm25 = pt.terrier.Retriever(index, wmodel="BM25")
-pl2 = pt.terrier.Retriever(index, wmodel="PL2")
+dfree = pt.terrier.Retriever(index, wmodel="DFRee")
 pyterrier_models = {
     "BM25": bm25 % 100,
-    "BM25+PL2": (bm25 % 100) >> pl2
+    "BM25+DFRee": (bm25 % 100) >> dfree
 }
 pyterrier_runs = {}
 for model_name, model in pyterrier_models.items():

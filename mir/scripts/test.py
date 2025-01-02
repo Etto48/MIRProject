@@ -61,10 +61,10 @@ def evaluate_ir(mode: Literal["validation", "test"] = "validation"):
     print(my_run)
 
     bm25 = pt.terrier.Retriever(index, wmodel="BM25")
-    pl2 = pt.terrier.Retriever(index, wmodel="PL2")
+    dfree = pt.terrier.Retriever(index, wmodel="DFRee")
     pyterrier_models = {
         "BM25": bm25 % 100,
-        "BM25+PL2": (bm25 % 100) >> pl2
+        "BM25+DFRee": (bm25 % 100) >> dfree
     }
     pyterrier_runs = {}
     for model_name, model in pyterrier_models.items():
