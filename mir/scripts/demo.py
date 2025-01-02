@@ -16,15 +16,15 @@ from mir.utils.download_and_extract import download_and_extract
 
 get_msmarco_dataset(verbose=True)
 dataset_csv = f"{DATA_DIR}/msmarco/collection.tsv"
-indexer = pt.terrier.IterDictIndexer(f"{DATA_DIR}/msmarco-pyterrier-index")
 index_path = f"{DATA_DIR}/msmarco-pyterrier-index/data.properties"
 msmarco_pyterrier_index_url = "https://huggingface.co/Etto48/MIRProject/resolve/main/msmarco-pyterrier-index.tar.gz"
 msmarco_sqlite_index_url = "https://huggingface.co/Etto48/MIRProject/resolve/main/msmarco-sqlite-index.db.tar.gz"
 # download pyterrier index
-download_and_extract(msmarco_pyterrier_index_url, f"{DATA_DIR}/msmarco-pyterrier-index")
+download_and_extract(msmarco_pyterrier_index_url, f"{DATA_DIR}/msmarco-pyterrier-index", desc="PyTerrier Index")
 # download sqlite index
-download_and_extract(msmarco_sqlite_index_url, f"{DATA_DIR}/msmarco-sqlite-index.db")
+download_and_extract(msmarco_sqlite_index_url, f"{DATA_DIR}/msmarco-sqlite-index.db", desc="SQLite Index")
 
+indexer = pt.terrier.IterDictIndexer(f"{DATA_DIR}/msmarco-pyterrier-index")
 if not os.path.exists(index_path):
     dataset = pd.read_csv(dataset_csv, sep='\t', header=None, names=['docno', 'text'], dtype={'docno': str, 'text': str})
     indexref = indexer.index(tqdm(dataset.to_dict(orient='records'), desc="Indexing"))
