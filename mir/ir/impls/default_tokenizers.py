@@ -20,9 +20,6 @@ class DefaultTokenizer(Tokenizer):
         self.remove_punctuation = str.maketrans(string.punctuation, " " * len(string.punctuation))
         self.separate_numbers = str.maketrans({key: f" {key} " for key in string.digits})
     
-    def get_stopwords(self) -> frozenset[str]:
-        return self.stopwords
-
     def preprocess(self, text: str):
         # normalize unicode
         text = unidecode.unidecode(text, errors="replace", replace_str=" ")
