@@ -3,7 +3,7 @@
 ## Count Scoring
 
 
-The CountScoringFunction class implements a simple scoring function that calculates the score of a document based on the ratio of the number of terms matching the query to the number of query terms.
+The `CountScoringFunction` class implements a simple scoring function that calculates the score of a document based on the ratio of the number of terms matching the query to the number of query terms.
 
 It returns this ratio as the document's score. 
 

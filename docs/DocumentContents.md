@@ -2,7 +2,7 @@
 
 ## Document Contents
 
-The DocumentContents class represents a document in a format compatible with the system. 
+The `DocumentContents` class represents a document in a format compatible with the system. 
 
 It includes three primary fields: author, title, and body.
  
