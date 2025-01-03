@@ -367,16 +367,17 @@ def compile_code_cells(sorted_text_for_files: list[str]) -> list[dict]:
     return cells
 
 
-def load_doc(doc_files: list[str]) -> list[tuple[Optional[str], str]]:
+def load_doc(doc_files: list[str]) -> list[tuple[Optional[str|int], str]]:
     doc_text_for_files: list[tuple[Optional[str], str]] = []
     for file in doc_files:
         module_name = None
         with open(file) as f:
             lines = f.readlines()
-        prefix = "<!-- module:"
+        module_prefix = "<!-- module:"
+        order_prefix = "<!-- order:"
         postfix = "-->\n"
-        if lines and lines[0].startswith(prefix) and lines[0].endswith(postfix):
-            module_name = lines[0][len(prefix):len(
+        if lines and lines[0].startswith(module_prefix) and lines[0].endswith(postfix):
+            module_name = lines[0][len(module_prefix):len(
                 lines[0])-len(postfix)].strip()
             print(
                 c(
@@ -386,20 +387,38 @@ def load_doc(doc_files: list[str]) -> list[tuple[Optional[str], str]]:
                 )
             )
             lines = lines[1:]
+        elif lines and lines[0].startswith(order_prefix) and lines[0].endswith(postfix):
+            order = lines[0][len(order_prefix):len(
+                lines[0])-len(postfix)].strip()
+            print(
+                c(
+                    f"\"docs/{os.path.basename(file)}\" -> @{order}",
+                    "bright_magenta",
+                    1
+                )
+            )
+            module_name = int(order)
+            lines = lines[1:]
         doc_text_for_files.append((module_name, "".join(lines)))
     return doc_text_for_files
 
 
 def order_docs(
         cell_modules: list[Optional[str]],
-        doc_text_for_files: list[tuple[Optional[str], str]],
+        doc_text_for_files: list[tuple[Optional[str|int], str]],
         doc_files: list[str]) -> tuple[list[tuple[Optional[str], str]], list[str]]:
     module_index_hashmap = {module: i for i, module in enumerate(
         cell_modules) if module is not None}
     module_index_hashmap[None] = -1
     # sort the documentation files based on the order of the modules
+    def key(x: tuple[tuple[Optional[str|int], str], str]) -> int:
+        if isinstance(x[0][0], int):
+            return x[0][0]
+        else:
+            return module_index_hashmap[x[0][0]]
+        
     sorted_doc_text_for_files, sorted_doc_files = zip(
-        *sorted(zip(doc_text_for_files, doc_files), key=lambda x: module_index_hashmap[x[0][0]])
+        *sorted(zip(doc_text_for_files, doc_files), key=key)
     )
     return sorted_doc_text_for_files, sorted_doc_files
 
@@ -444,6 +463,16 @@ def merge_code_and_doc_cells(
                 sorted_doc_text_for_files[doc_index][1]))
             doc_index += 1
         new_cells.append(cell)
+    while doc_index < len(sorted_doc_text_for_files):
+        print(
+            c(
+                f"Adding doc \"docs/{os.path.basename(sorted_doc_files[doc_index])}\" at the end",
+                "bright_magenta",
+                1
+            )
+        )
+        new_cells.append(doc_to_cell(sorted_doc_text_for_files[doc_index][1]))
+        doc_index += 1
     return new_cells
 
 
