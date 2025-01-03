@@ -2,7 +2,7 @@
 
 ## IR System
 
-The **IR** class serves as the backbone of the project, integrating all necessary components to create a fully functional instance. It orchestrates indexing and search operations by leveraging these components.
+The `IR` class serves as the backbone of the project, integrating all necessary components to create a fully functional instance. It orchestrates indexing and search operations by leveraging these components.
 
 ### Initialization
 During the initialization of the IR System, a **scoring function pipeline** can be provided. This pipeline consists of a list of tuples in the format:  

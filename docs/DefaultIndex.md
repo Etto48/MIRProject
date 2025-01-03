@@ -2,7 +2,7 @@
 
 ## Default Index
 
-The DefaultIndex class implements an index for storing and retrieving document and term information. 
+The `DefaultIndex` class implements an index for storing and retrieving document and term information. 
 
 It supports document indexing, term frequency tracking, and postings retrieval. 
 
