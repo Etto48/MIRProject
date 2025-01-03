@@ -20,9 +20,9 @@ index_path = f"{DATA_DIR}/msmarco-pyterrier-index/data.properties"
 msmarco_pyterrier_index_url = "https://huggingface.co/Etto48/MIRProject/resolve/main/msmarco-pyterrier-index.tar.gz"
 msmarco_sqlite_index_url = "https://huggingface.co/Etto48/MIRProject/resolve/main/msmarco-sqlite-index.db.tar.gz"
 # download pyterrier index
-download_and_extract(msmarco_pyterrier_index_url, DATA_DIR, desc="PyTerrier Index")
+download_and_extract(msmarco_pyterrier_index_url, f"{DATA_DIR}/msmarco-pyterrier-index", desc="PyTerrier Index")
 # download sqlite index
-download_and_extract(msmarco_sqlite_index_url, DATA_DIR, desc="SQLite Index")
+download_and_extract(msmarco_sqlite_index_url, f"{DATA_DIR}/msmarco-sqlite-index.db", desc="SQLite Index")
 
 indexer = pt.terrier.IterDictIndexer(f"{DATA_DIR}/msmarco-pyterrier-index")
 if not os.path.exists(index_path):
@@ -57,6 +57,14 @@ if len(my_ir.index) == 0:
     my_ir.bulk_index_documents(sized_generator, verbose=True)
 
 my_topics = pd.read_csv(topics_path, sep='\t', header=None, names=['query_id', 'text'], dtype={'query_id': int, 'text': str})
+
+# reduce the number of topics to 10
+n = 10
+topics = topics.head(n)
+qids = topics['qid']
+my_topics = my_topics[my_topics['query_id'].isin(qids)]
+qrels = qrels[qrels['qid'].isin(qids)]
+
 my_run = my_ir.get_run(my_topics, verbose=True, pyterrier_compatible=True)
 
 bm25 = pt.terrier.Retriever(index, wmodel="BM25")
