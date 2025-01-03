@@ -22,8 +22,11 @@ def get_msmarco_dataset(verbose: bool = False):
     queries_valid = "https://msmarco.z22.web.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz"
     queries_test = "https://msmarco.z22.web.core.windows.net/msmarcoranking/msmarco-test2020-queries.tsv.gz"
     qrels_train = "https://msmarco.z22.web.core.windows.net/msmarcoranking/qrels.train.tsv"
-    qrels_valid = "https://trec.nist.gov/data/deep/2019qrels-pass.txt"
-    qrels_test = "https://trec.nist.gov/data/deep/2020qrels-pass.txt"
+    # trec link is usually down so I'm using my own link to the same files
+    # qrels_valid = "https://trec.nist.gov/data/deep/2019qrels-pass.txt"
+    # qrels_test = "https://trec.nist.gov/data/deep/2020qrels-pass.txt"
+    qrels_valid = "https://huggingface.co/Etto48/MIRProject/resolve/main/2019qrels-pass.txt"
+    qrels_test = "https://huggingface.co/Etto48/MIRProject/resolve/main/2020qrels-pass.txt"
     
     urls = [corpus, queries, queries_valid, queries_test, qrels_train, qrels_valid, qrels_test]
     dataset_dir = f"{DATA_DIR}/msmarco"
