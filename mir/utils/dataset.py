@@ -1,13 +1,10 @@
 from collections.abc import Generator
 import gzip
 import tarfile
-import numpy as np
 import requests
-from mir import DATA_DIR, COLAB
+from mir import DATA_DIR
 import pandas as pd
 import os
-import json
-import unidecode
 from tqdm.auto import tqdm
 
 from mir.ir.document_contents import DocumentContents
