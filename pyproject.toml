@@ -20,3 +20,6 @@ file = "LICENSE"
 
 [tool.setuptools.package-dir]
 mir = "mir"
+
+[tool.poetry.dependencies]
+other_package = { git = "https://github.com/facebookresearch/contriever", branch = "main" }
