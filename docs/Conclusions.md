@@ -14,6 +14,7 @@ Our Information Retrieval (IR) system demonstrates performance comparable to BM2
 A key strength of our system lies in its highly modular architecture. We prioritized designing a flexible and extendable codebase, enabling future enhancements and integration of advanced scoring functions, indexing mechanisms, or re-ranking techniques.
 
 ### Limitations and Challenges
+
 Despite the promising results, our system's inference time lags significantly behind state-of-the-art solutions. This limitation stems from the reliance on less-optimized technologies for handling large datasets and the constrained time frame that limited further optimizations.
 
-The primary bottleneck resides in the retrieval of document_info from the index implemented with SQL-based technology. While SQL provides robust handling for structured data, it is not optimized for high-throughput IR tasks.
+The primary bottleneck resides in the retrieval of postings and document info from the index implemented with SQL-based technology. While SQL provides robust handling for structured data, it is not optimized for high-throughput IR tasks.
