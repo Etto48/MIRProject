@@ -14,7 +14,7 @@ def download_and_extract(url: str, path: str, desc: str = ""):
                 for chunk in stream.iter_content(chunk_size=1024):
                     f.write(chunk)
                     pbar.update(len(chunk))
-    with tarfile.open(tgz_path, 'r:gz') as tar:
-        members = tqdm([member for member in tar.getmembers() if not os.path.exists(os.path.join(output_dir, member.name))], desc=f"Extracting {desc}")
-        tar.extractall(output_dir, members)
+        with tarfile.open(tgz_path, 'r:gz') as tar:
+            members = tqdm([member for member in tar.getmembers() if not os.path.exists(os.path.join(output_dir, member.name))], desc=f"Extracting {desc}")
+            tar.extractall(output_dir, members)
             

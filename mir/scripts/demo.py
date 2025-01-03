@@ -61,9 +61,10 @@ my_topics = pd.read_csv(topics_path, sep='\t', header=None, names=['query_id', '
 # reduce the number of topics to 10
 n = 10
 topics = topics.head(n)
-qids = topics['qid']
-my_topics = my_topics[my_topics['query_id'].isin(qids)]
-qrels = qrels[qrels['qid'].isin(qids)]
+qids_str = topics['qid']
+qids_int = topics['qid'].astype(int)
+my_topics = my_topics[my_topics['query_id'].isin(qids_int)]
+qrels = qrels[qrels['qid'].isin(qids_str)]
 
 my_run = my_ir.get_run(my_topics, verbose=True, pyterrier_compatible=True)
 
