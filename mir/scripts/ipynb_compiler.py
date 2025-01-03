@@ -468,7 +468,7 @@ def compile_notebook(cells: list[dict]) -> dict:
     return jupyter_notebook
 
 
-def src_to_ipynb(src_dir: str, doc_dir: str, output_dir: str) -> tuple[str, str]:
+def src_to_ipynb(src_dir: str, doc_dir: str, output_dir: str):
     """
     Convert a source directory containing a python project to a Jupyter notebook.
 
@@ -477,7 +477,7 @@ def src_to_ipynb(src_dir: str, doc_dir: str, output_dir: str) -> tuple[str, str]
     - doc_dir (str): The directory containing MD documentation to embed in the notebook.
 
     # Returns
-    - tuple[str, str]: The script and notebook paths.
+    - str: The path to the Jupyter notebook file.
     """
 
     start_time = time.time()
@@ -498,8 +498,8 @@ def src_to_ipynb(src_dir: str, doc_dir: str, output_dir: str) -> tuple[str, str]
     sorted_text_for_files = load_and_clean_files(
         sorted_files, src_files_to_modules)
 
-    print(c("Compiling python script", "bright_green"))
-    python_script = compile_python_script(sorted_text_for_files)
+    #print(c("Compiling python script", "bright_green"))
+    #python_script = compile_python_script(sorted_text_for_files)
 
     print(c("Creating code cells", "bright_green"))
     cells = compile_code_cells(sorted_text_for_files)
@@ -526,28 +526,27 @@ def src_to_ipynb(src_dir: str, doc_dir: str, output_dir: str) -> tuple[str, str]
     jupyter_notebook = compile_notebook(cells)
 
     
-    script_path = f"{output_dir}/colab.py"
+    #script_path = f"{output_dir}/colab.py"
     jupyter_path = f"{output_dir}/colab.ipynb"
-    print(c(f"Writing script file", "bright_green"))
-    with open(script_path, "w") as f:
-        f.write(python_script)
+    #print(c(f"Writing script file", "bright_green"))
+    #with open(script_path, "w") as f:
+    #    f.write(python_script)
     print(c(f"Writing jupyter notebook file", "bright_green"))
     with open(jupyter_path, "w") as f:
         json.dump(jupyter_notebook, f, indent=4)
     print(c(f"Done in {time.time() - start_time:.4f}s", "bright_blue"))
-    return script_path, jupyter_path
+    return jupyter_path
 
 
 if __name__ == "__main__":
     src_dir = f"{PROJECT_DIR}/mir"
     doc_dir = f"{PROJECT_DIR}/docs"
-    output_dir = f"{DATA_DIR}"
-    script, notebook = src_to_ipynb(src_dir, doc_dir, output_dir)
+    output_dir = f"{PROJECT_DIR}"
+    notebook = src_to_ipynb(src_dir, doc_dir, output_dir)
     pwd = os.path.abspath("")
-    if script.startswith(pwd):
-        script = "." + script[len(pwd):]
+    # if script.startswith(pwd):
+    #     script = "." + script[len(pwd):]
     if notebook.startswith(pwd):
         notebook = "." + notebook[len(pwd):]
-    print(f"Script: {script}")
     print(f"Notebook: {notebook}")
     

@@ -17,9 +17,5 @@ def download_and_extract(url: str, path: str, desc: str = ""):
     if not os.path.exists(output_dir):
         with tarfile.open(tgz_path, 'r:gz') as tar:
             members = tqdm(tar.getmembers(), desc=f"Extracting {desc}")
-            if len(tar.getnames()) == 1:
-                tar.extractall(os.path.dirname(output_dir), members)
-                os.rename(os.path.join(os.path.dirname(output_dir), tar.getnames()[0]), output_dir)
-            else:
-                tar.extractall(output_dir, members)
+            tar.extractall(output_dir, members)
             
