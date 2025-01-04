@@ -47,18 +47,26 @@ def evaluate_ir(mode: Literal["validation", "test"] = "validation"):
     topics['query'] = topics['query'].apply(preprocess_query)
 
 
-    my_ir = Ir(SqliteIndex(f"{DATA_DIR}/msmarco-sqlite-index.db"), scoring_functions=[
+    my_index = SqliteIndex(f"{DATA_DIR}/msmarco-sqlite-index.db")
+    if len(my_index) == 0:
+        dataset = pd.read_csv(dataset_csv, sep='\t', header=None, names=['docno', 'text'], dtype={'docno': str, 'text': str})
+        sized_generator = msmarco_dataset_to_contents(dataset)
+        my_index.bulk_index_documents(sized_generator, verbose=True)
+
+    my_bm25 = Ir(my_index, scoring_functions=[
+        (100, BM25FScoringFunction(1.2, 0.8))
+    ])
+
+    my_neural_scoring = Ir(my_index, scoring_functions=[
         (100, BM25FScoringFunction(1.2, 0.8)),
         (10, NeuralScoringFunction())
     ])
-    if len(my_ir.index) == 0:
-        dataset = pd.read_csv(dataset_csv, sep='\t', header=None, names=['docno', 'text'], dtype={'docno': str, 'text': str})
-        sized_generator = msmarco_dataset_to_contents(dataset)
-        my_ir.bulk_index_documents(sized_generator, verbose=True)
 
     my_topics = pd.read_csv(topics_path, sep='\t', header=None, names=['query_id', 'text'], dtype={'query_id': int, 'text': str})
-    my_run = my_ir.get_run(my_topics, verbose=True, pyterrier_compatible=True)
-    print(my_run)
+    my_bm25_run = my_bm25.get_run(my_topics, verbose=True, pyterrier_compatible=True)
+    my_neural_scoring_run = my_neural_scoring.get_run(my_topics, verbose=True, pyterrier_compatible=True)
+    print(my_bm25_run)
+    print(my_neural_scoring_run)
 
     bm25 = pt.terrier.Retriever(index, wmodel="BM25")
     dfree = pt.terrier.Retriever(index, wmodel="DFRee")
@@ -72,8 +80,8 @@ def evaluate_ir(mode: Literal["validation", "test"] = "validation"):
         pyterrier_runs[model_name] = model.transform(topics)
         print(pyterrier_runs[model_name])
 
-    test_runs = [my_run, *pyterrier_runs.values()]
-    names = ["MyIR", *pyterrier_models.keys()]
+    test_runs = [my_bm25_run, my_neural_scoring_run, *pyterrier_runs.values()]
+    names = ["Our BM25", "Our BM25+LtR", *pyterrier_models.keys()]
 
     metrics = ["map", "ndcg", "recip_rank", "P.10", "recall.10", ]
     res = pt.Experiment(test_runs, topics, qrels, metrics, names=names)
